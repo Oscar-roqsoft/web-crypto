@@ -29,15 +29,16 @@ const GAS_FEES = {
 
 const SUPPORTED_COINS = ["BTC","ETH","USDT","TRX","SOL","XRP","XLM","ADA"];
 
+
 const COIN_NETWORKS = {
-  BTC: "BTC",
-  ETH: "ERC20",
+  BTC: "BITCOIN",
+  ETH: "ETHEREUM",
   USDT: "TRC20",
-  TRX: "TRC20",
-  SOL: "SOL",
-  XRP: "XRP",
-  XLM: "XLM",
-  ADA: "ADA"
+  TRX: "TRON",
+  SOL: "SOLANA",
+  XRP: "RIPPLE",
+  XLM: "STELLAR",
+  ADA: "CARDONA"
 };
 
 
@@ -64,7 +65,7 @@ const getUserBalances = async (req, res) => {
 
     balances.forEach((b) => {
 
-      const key = `${b.coin}_${b.network}`;
+      const key = `${b.coin}_${b.network}`.toUpperCase();
 
       balanceMap[key] = b;
 
@@ -246,9 +247,13 @@ const sendCrypto = async (req, res) => {
 
       if (!recipientBalance) {
         recipientBalance = await Balance.create({
-          userId: recipientUser._id,
+          userId,
+          type: "send",
           coin,
           network: senderBalance.network,
+          amount: amt,
+          recipientAddress,
+          status: "completed",
           balance: 0
         });
       }
@@ -346,6 +351,12 @@ const swapCrypto = async (req, res) => {
 
       receiverBalance = await Balance.create({
         userId,
+        type: "swap",
+        fromCoin,
+        toCoin,
+        fromAmount: amt,
+        toAmount,
+        status: "completed",
         coin: toCoin,
         network: COIN_NETWORKS[toCoin],
         balance: toAmount
@@ -379,46 +390,44 @@ const swapCrypto = async (req, res) => {
 };
 
 
-const fundUserWallet = async (req,res)=>{
+const fundUserWallet = async (req, res) => {
+  try {
 
-    try{
-  
-      const { userId, coin, amount,network } = req.body;
-  
-      if(!userId || !coin || !amount)
-        return sendBadRequestResponse(res, "Missing required fields");
-       
-      let balance = await Balance.findOne({ userId, coin,network });
+    const { userId, coin, amount, network } = req.body;
 
-  
-      if(!balance){
-  
-        balance = new Balance({
-          userId,
-          coin,
-          balance:0,
-          network
-        });
-  
-      }
-  
-      balance.balance += Number(amount);
-  
-      await balance.save();
-
-      const mybal = {balance}
-  
-      
-      return sendSuccessResponseData(res, "Wallet funded successfully", {...mybal})
-  
-    }catch(error){
-  
-      console.error("Fund wallet error:",error);
-  
-      sendUnauthenticatedErrorResponse(res, error.message);
+    if (!userId || !coin || !amount || !network) {
+      return sendBadRequestResponse(res, "Missing required fields");
     }
-  
-  };
+
+    const type = "fund"; // ✅ FORCE TYPE HERE
+
+    let balance = await Balance.findOne({ userId, coin, network });
+
+    if (!balance) {
+      balance = new Balance({
+        userId,
+        coin,
+        network,
+        balance: 0,
+        type,              // ✅ NOW ALWAYS PRESENT
+        status: "completed"
+      });
+    }
+
+    balance.balance += Number(amount);
+    balance.totalReceived += Number(amount);
+
+    await balance.save();
+
+    return sendSuccessResponseData(res, "Wallet funded successfully", {
+      balance
+    });
+
+  } catch (error) {
+    console.error("Fund wallet error:", error);
+    sendUnauthenticatedErrorResponse(res, error.message);
+  }
+};
   
 
 

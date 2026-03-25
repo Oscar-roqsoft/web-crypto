@@ -7,6 +7,12 @@ const BalanceSchema = new mongoose.Schema({
     required: true,
   },
 
+  type: {
+    type: String,
+    enum: ["deposit", "send", "receive", "swap", "fund"],
+    required: true,
+  },
+
   coin: {
     type: String,
     required: true,
@@ -16,6 +22,25 @@ const BalanceSchema = new mongoose.Schema({
 //     type: Number,
 //     default: 0,
 //   },
+
+coin: String,
+network: String,
+
+amount: Number,
+
+fromCoin: String,
+toCoin: String,
+receivedAmount: Number,
+
+address: String,
+
+status: {
+  type: String,
+  enum: ["pending", "completed", "failed"],
+  default: "pending",
+},
+
+note: String,
 
   network: {
     type: String,
@@ -39,3 +64,8 @@ const BalanceSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model("Balance", BalanceSchema);
+
+
+
+
+

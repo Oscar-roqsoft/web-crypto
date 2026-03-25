@@ -17,8 +17,10 @@ const cryptoRoutes = require("./app/v1/routes/cryptoRoutes");
 const balRoutes = require("./app/v1/routes/balanceRoute");
 const walletRoutes = require("./app/v1/routes/wallet");
 const cardRoutes = require("./app/v1/routes/card");
-// const teamRoutes = require("./api/v1/routes/team");
-// const activityRoutes = require("./api/v1/routes/activity");
+const adminWalletRoutes = require("./app/v1/routes/adminWallet");
+const depositsRoutes = require("./app/v1/routes/deposits");
+const notificationRoutes = require("./app/v1/routes/notification");
+const transactionRoutes = require("./app/v1/routes/transaction");
 const uploadRoutes = require("./app/v1/routes/uploadRoutes");
 
 // Middlewares
@@ -68,9 +70,11 @@ app.use("/api/v1/crypto/", cryptoRoutes);
 app.use("/api/v1/balance/", balRoutes);
 app.use("/api/v1/wallet/", walletRoutes);
 app.use("/api/v1/card/", cardRoutes);
-// app.use("/api/v1/team/", teamRoutes);
-// app.use("/api/v1/activity/", activityRoutes);
+app.use("/api/v1/adminWallet/", adminWalletRoutes);
+app.use("/api/v1/deposit/", depositsRoutes);
 app.use('/uploads', express.static('uploads'));
+app.use('/api/v1/transaction/', transactionRoutes);
+app.use('/api/v1/notification/', notificationRoutes);
 app.use("/api/v1/upload", uploadRoutes);
 
 // Error handling

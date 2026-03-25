@@ -18,6 +18,7 @@ const cardSchema = new mongoose.Schema(
     cardNumber: String,
     expiry: String,
     cvv: String,
+    username: String,
 
     cardLimit: {
       type: Number,
@@ -42,5 +43,6 @@ const cardSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
 
 module.exports = mongoose.model("Card", cardSchema);

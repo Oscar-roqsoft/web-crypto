@@ -13,6 +13,7 @@ const encrypt = (text) => {
   return iv.toString("hex") + ":" + encrypted.toString("hex");
 };
 
+
 const decrypt = (text) => {
   const [ivHex, encryptedHex] = text.split(":");
 

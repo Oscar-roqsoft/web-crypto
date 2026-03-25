@@ -27,7 +27,7 @@ const getCryptoPrices = async (req, res) => {
 
     // Map coin to network manually (you can extend as needed)
     const networkMap = {
-      USDT: "Tron",       // TRC20
+      USDT: "Trc20",       // TRC20
       BTC: "Bitcoin",
       ETH: "Ethereum",
       TRX: "Tron",

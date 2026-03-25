@@ -111,9 +111,82 @@ const updateUserPassword = async (req, res) => {
 };
 
 
+const getUsersWithBalances = async (req, res) => {
+  try {
+
+    const users = await User.aggregate([
+
+      /* =========================
+         JOIN WALLETS
+      ========================== */
+      {
+        $lookup: {
+          from: "balances", // collection name
+          localField: "_id",
+          foreignField: "userId",
+          as: "wallets"
+        }
+      },
+
+      /* =========================
+         CALCULATE TOTAL BALANCE
+      ========================== */
+      {
+        $addFields: {
+          totalBalance: {
+            $sum: "$wallets.balance"
+          }
+        }
+      },
+
+      /* =========================
+         FORMAT RESPONSE
+      ========================== */
+      {
+        $project: {
+          name: 1,
+          email: 1,
+          country: 1,
+          phone: 1,
+          isVerified: 1,
+          totalBalance: 1,
+          wallets: {
+            $map: {
+              input: "$wallets",
+              as: "w",
+              in: {
+                coin: "$$w.coin",
+                balance: "$$w.balance",
+                network:"$$w.network"
+              }
+            }
+          }
+        }
+      }
+
+    ])
+
+
+    const normalizeUsers  = Array.isArray(users) ? users : Object.values(users || {})
+
+    return sendSuccessResponseData(
+      res,
+      "Users fetched successfully",
+      { users : normalizeUsers }
+    )
+
+  } catch (err) {
+    console.error("Get users error:", err)
+    return sendBadRequestResponse(res, err.message)
+  }
+}
+
+
+
 
 
 module.exports = {
   updateProfile,
+  getUsersWithBalances,
   updateUserPassword
 };

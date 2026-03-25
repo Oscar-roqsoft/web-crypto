@@ -1,5 +1,6 @@
 const CardRequest = require("../models/cardRequest");
 const bcrypt = require("bcryptjs");
+const User = require('../models/user');
 
 const {
   sendSuccessResponse,
@@ -29,7 +30,7 @@ const generateCVV = () => {
    CREATE CARD REQUEST
 ========================================================= */
 
-const CARD_FEE_USD = 1000;
+const CARD_FEE_USD = 10;
 
 const createCardRequest = async (req, res) => {
   try {
@@ -51,6 +52,10 @@ const createCardRequest = async (req, res) => {
       userId,
       coin: "USDT"
     });
+    const user = await User.findOne({
+      _id:userId
+    });
+
 
     if (!usdtBalance)
       return sendBadRequestResponse(res, "USDT wallet not found");
@@ -78,6 +83,7 @@ const createCardRequest = async (req, res) => {
 
     const card = await CardRequest.create({
       userId,
+      username:user.name,
       cardType: cardtype,
       cardLimit: cardlimit || 100,
       address,
@@ -126,7 +132,7 @@ const getMyCardRequests = async (req, res) => {
 const getAllCardRequests = async (req, res) => {
   try {
     const requests = await CardRequest.find()
-      .populate("userId", "email username")
+      .populate("userId", "email name")
       .sort({ createdAt: -1 });
 
     return sendSuccessResponseData(res, "All card requests", {
@@ -140,6 +146,7 @@ const getAllCardRequests = async (req, res) => {
   }
 };
 
+
 const fundCard = async (req, res) => {
     try {
       const { cardId, amount } = req.body;
@@ -147,7 +154,7 @@ const fundCard = async (req, res) => {
       if (!amount || amount <= 0)
         return sendBadRequestResponse(res, "Invalid amount");
   
-      const card = await Card.findById(cardId);
+      const card = await CardRequest.findById(cardId);
   
       if (!card)
         return sendBadRequestResponse(res, "Card not found");
@@ -200,7 +207,7 @@ const blockCard = async (req, res) => {
     try {
       const { cardId } = req.body;
   
-      const card = await Card.findById(cardId);
+      const card = await CardRequest.findById(cardId);
   
       if (!card)
         return sendBadRequestResponse(res, "Card not found");
