@@ -191,7 +191,7 @@ const getWalletAddress = async (req, res) => {
 
     const wallet = await Wallet.findOne({
       userId,
-      coin: coin.toUpperCase()
+      coin: coin
     });
 
     if (!wallet)

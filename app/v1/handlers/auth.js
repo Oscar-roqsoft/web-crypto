@@ -282,7 +282,7 @@ const login = async (req, res) => {
       balances: user.balances,
       country:user.country,
       avatar:user.avatar,
-      // role: user.role,
+      role: user.role,
       isPinSet: user.isPinSet,
       isVerified: user.isVerified,
       pin: user.pin
