@@ -35,15 +35,15 @@ app.use(express.urlencoded({ extended: true })); // For parsing application/x-ww
 
 
 // Middleware setup
-// app.use((req, res, next) => {
-//     res.setHeader("Access-Control-Allow-Origin", "*",'https://web-crypto-app.onrender.com/','http://localhost:5000','http://localhost:3000');
-//     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH");
-//     res.header(
-//       "Access-Control-Allow-Headers",
-//       "Content-Type, Authorization,  token"
-//     );
-//     next();
-// });
+app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*",'https://web-crypto-app.onrender.com/','http://localhost:5000','http://localhost:3000');
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization,  token"
+    );
+    next();
+});
 
 app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization", "token"],

@@ -8,8 +8,20 @@ const {
 } = require('../responses');
 
 
+
+let cache = null;
+let lastFetch = 0;
+
 const getCryptoPrices = async (req, res) => {
   try {
+    // 🔥 Return cached data (1 minute)
+    if (cache && Date.now() - lastFetch < 60000) {
+      return res.json({
+        success: true,
+        data: cache
+      });
+    }
+
     const response = await axios.get(
       "https://api.coingecko.com/api/v3/coins/markets",
       {
@@ -21,13 +33,17 @@ const getCryptoPrices = async (req, res) => {
           page: 1,
           sparkline: false,
           price_change_percentage: "24h"
+        },
+        timeout: 10000,
+        headers: {
+          "User-Agent": "Mozilla/5.0",
+          Accept: "application/json"
         }
       }
     );
 
-    // Map coin to network manually (you can extend as needed)
     const networkMap = {
-      USDT: "Trc20",       // TRC20
+      USDT: "Trc20",
       BTC: "Bitcoin",
       ETH: "Ethereum",
       TRX: "Tron",
@@ -46,23 +62,31 @@ const getCryptoPrices = async (req, res) => {
       network: networkMap[coin.symbol.toUpperCase()] || null
     }));
 
-    res.json({
+    // 💾 Save cache
+    cache = coins;
+    lastFetch = Date.now();
+
+    return res.json({
       success: true,
       data: coins
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
+    console.error("CoinGecko Error:", error.response?.status, error.message);
+
+    // 🛟 fallback to cache if available
+    if (cache) {
+      return res.json({
+        success: true,
+        data: cache
+      });
+    }
+
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch crypto prices"
     });
   }
 };
-
-
-
-
-
 
 module.exports = { getCryptoPrices };
