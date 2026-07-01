@@ -34,7 +34,7 @@ const getCryptoPrices = async (req, res) => {
           sparkline: false,
           price_change_percentage: "24h"
         },
-        timeout: 10000,
+        timeout: 40000,
         headers: {
           "User-Agent": "Mozilla/5.0",
           Accept: "application/json"
@@ -73,6 +73,12 @@ const getCryptoPrices = async (req, res) => {
 
   } catch (error) {
     console.error("CoinGecko Error:", error.response?.status, error.message);
+    console.error({
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+      stack: error.stack
+    });
 
     // 🛟 fallback to cache if available
     if (cache) {
