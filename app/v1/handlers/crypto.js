@@ -34,12 +34,10 @@ const getCryptoPrices = async (req, res) => {
           per_page: 10,
           page: 1,
           sparkline: false,
-          price_change_percentage: "24h"
+          price_change_percentage: "24h",
+          x_cg_demo_api_key: process.env.COINGECKO_API_KEY
         },
-        timeout: 40000,
-        headers: {
-          "x-cg-demo-api-key": process.env.COINGECKO_API_KEY
-        }
+        timeout: 40000
       }
     );
 // CG-MZ74Hz2PqmgEjPPbvYa4Yd7j
