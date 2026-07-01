@@ -15,11 +15,13 @@ let lastFetch = 0;
 const getCryptoPrices = async (req, res) => {
   try {
     // 🔥 Return cached data (1 minute)
-    if (cache && Date.now() - lastFetch < 60000) {
-      return res.json({
-        success: true,
-        data: cache
-      });
+    const CACHE_TIME = 5 * 60 * 1000; // 5 minutes
+
+    if (cache && Date.now() - lastFetch < CACHE_TIME) {
+        return res.json({
+            success: true,
+            data: cache
+        });
     }
 
     const response = await axios.get(
@@ -36,12 +38,11 @@ const getCryptoPrices = async (req, res) => {
         },
         timeout: 40000,
         headers: {
-          "User-Agent": "Mozilla/5.0",
-          Accept: "application/json"
+          "x-cg-demo-api-key": process.env.COINGECKO_API_KEY
         }
       }
     );
-
+// CG-MZ74Hz2PqmgEjPPbvYa4Yd7j
     const networkMap = {
       USDT: "Trc20",
       BTC: "Bitcoin",
