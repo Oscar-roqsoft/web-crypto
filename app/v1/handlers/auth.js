@@ -122,15 +122,16 @@ const verifyOTP = async (req, res) => {
       );
     }
 
+    
     const normalizedEmail = email.toLowerCase().trim();
 
     const key = `otp:${normalizedEmail.toLowerCase().trim()}`;
 
     // console.log("Looking for:", key);
 
-    // const storedOTP = cache.get(key);
+    const storedOTP = cache.get(key);
 
-    // console.log("Stored OTP:", storedOTP);
+    console.log("Stored OTP:", storedOTP);
 
     if (!storedOTP) {
       return sendBadRequestResponse(
