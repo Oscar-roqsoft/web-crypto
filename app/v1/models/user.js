@@ -43,6 +43,45 @@ const UserSchema = new mongoose.Schema({
     // minlength: [1, 'Name must be at least 3 characters'],
   },
 
+  userIdentity:{
+    firstName:{
+      type:String,
+    },
+    lastName:{
+      type:String,
+    },
+    dob:{
+      type:Date,
+    },
+   
+    address:{
+      type:String,
+    },
+    nationality:{
+      type:String,
+    },
+    documentType:{
+      type:String,
+    },
+    documentNumber:{
+      type:String,
+    },
+    frontFile:{
+      type:String,
+    },
+    backFile:{
+      type:String,
+    },
+    selfieFile:{
+      type:String,
+    }
+  },
+
+  twoFactorVerification:{
+    type:Boolean,
+    default:false
+  },
+
    // User country (for region restrictions, KYC, etc.)
    country:{
     type:String,
@@ -58,7 +97,7 @@ const UserSchema = new mongoose.Schema({
   // Email verification status
   isVerified:{
     type:Boolean,
-    default:true
+    default:false
   },
 
   // Security PIN used for sensitive operations

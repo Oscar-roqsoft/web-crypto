@@ -1,7 +1,7 @@
 const User = require('../models/user');
 const crypto = require('crypto');
 const cache = require('../../../db/cache');
-const sendOTP = require('../../../utils/sendOTP');
+const {sendOTPEmail,sendWelcomeEmail} = require('../../../utils/sendOTP');
 const Wallet = require("../models/walletAddress");
 const generateWalletAddress = require("../../../utils/generateWalletAddress");
 
@@ -32,7 +32,11 @@ const register = async (req, res) => {
       );
     }
 
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = email.toLowerCase().trim();
+
+      const existingUser = await User.findOne({
+          email: normalizedEmail
+      });
 
     if (existingUser) {
       return sendConflictResponse(res, 'Email already exists');
@@ -71,7 +75,7 @@ const register = async (req, res) => {
       pin: user.pin
     };
 
-    // await sendOTP(safeUser, accessToken);
+    await sendOTPEmail(safeUser, accessToken);
 
     sendSuccessResponseData(
       res,
@@ -81,16 +85,16 @@ const register = async (req, res) => {
 
     const coins = ["BTC","ETH","USDT","TRX","SOL","XRP","XLM","ADA"];
 
-    for (let coin of coins) {
-
-      await Wallet.create({
-        userId: user._id,
-        coin,
-        network: coin,
-        address: generateWalletAddress(coin)
-      });
-
-    }
+    await Promise.all(
+      coins.map((coin) =>
+        Wallet.create({
+          userId: user._id,
+          coin,
+          network: coin,
+          address: generateWalletAddress(coin),
+        })
+      )
+    );
 
   } catch (error) {
 
@@ -108,71 +112,98 @@ const register = async (req, res) => {
 |--------------------------------------------------------------------------
 */
 const verifyOTP = async (req, res) => {
-
   try {
-
     const { email, otp } = req.body;
 
     if (!email || !otp) {
-      return sendBadRequestResponse(res, 'Email and OTP required');
+      return sendBadRequestResponse(
+        res,
+        "Email and OTP required"
+      );
     }
 
-    const storedOTP = cache.get(email);
-    console.log(storedOTP,email)
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const key = `otp:${normalizedEmail.toLowerCase().trim()}`;
+
+    // console.log("Looking for:", key);
+
+    // const storedOTP = cache.get(key);
+
+    // console.log("Stored OTP:", storedOTP);
 
     if (!storedOTP) {
-      return sendBadRequestResponse(res, 'OTP expired');
+      return sendBadRequestResponse(
+        res,
+        "OTP expired"
+      );
     }
 
-    if (storedOTP !== otp) {
-      return sendBadRequestResponse(res, 'Invalid OTP');
+    if (storedOTP !== String(otp)) {
+      return sendBadRequestResponse(
+        res,
+        "Invalid OTP"
+      );
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      email: normalizedEmail,
+    });
 
     if (!user) {
-      return sendBadRequestResponse(res, 'User not Found');
+      return sendBadRequestResponse(
+        res,
+        "User not found"
+      );
+    }
+
+    if (user.isVerified) {
+      return sendBadRequestResponse(
+        res,
+        "Email already verified"
+      );
     }
 
     user.isVerified = true;
     await user.save();
 
-
-    cache.del(`otp_${email}`);
+    cache.del(`otp:${normalizedEmail}`);
 
     const token = user.createJWT();
 
     const safeUser = {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        walletAddress: user.walletAddress,
-        balances: user.balances,
-        country:user.country,
-        avatar:user.avatar,
-        role: user.role,
-        isVerified: user.isVerified,
-        isPinSet: user.isPinSet,
-        pin: user.pin
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      walletAddress: user.walletAddress,
+      balances: user.balances,
+      country: user.country,
+      avatar: user.avatar,
+      role: user.role,
+      isVerified: user.isVerified,
+      isPinSet: user.isPinSet,
+      pin: user.pin,
     };
 
-    sendSuccessResponseData(
-      res,
-      'Email verified successfully',
-      {
+    // Send only after successful verification
+    await sendWelcomeEmail(safeUser);
 
+    return sendSuccessResponseData(
+      res,
+      "Email verified successfully",
+      {
         token,
-        ...safeUser
+        ...safeUser,
       }
     );
-
   } catch (error) {
+    console.error("Verify OTP error:", error);
 
-    console.error('Verify OTP error:', error);
-    sendUnauthenticatedErrorResponse(res, error.message);
-
+    return sendUnauthenticatedErrorResponse(
+      res,
+      error.message
+    );
   }
-
 };
 
 
@@ -210,7 +241,7 @@ const resendOTP = async (req, res) => {
       email: user.email
     };
 
-    await sendOTP(safeUser, token);
+    await sendOTPEmail(safeUser, token);
 
     sendSuccessResponseData(
       res,
@@ -260,7 +291,7 @@ const login = async (req, res) => {
 
       const token = user.createJWT();
 
-      await sendOTP(user, token);
+      await sendOTPEmail(user, token);
 
       return sendSuccessResponseData(
         res,
@@ -285,7 +316,9 @@ const login = async (req, res) => {
       role: user.role,
       isPinSet: user.isPinSet,
       isVerified: user.isVerified,
-      pin: user.pin
+      pin: user.pin,
+      twoFactorVerification: user.twoFactorVerification,
+      userIdentity: user.userIdentity
     };
 
     sendSuccessResponseData(

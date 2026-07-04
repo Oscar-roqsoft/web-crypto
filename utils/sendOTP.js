@@ -1,56 +1,188 @@
-// sendOTP.js
-const nodemailer = require('nodemailer');
-const otpGenerator = require('otp-generator');
-const cache = require('../db/cache');
-require('dotenv').config();
+const cache = require("../db/cache");
 
-// Nodemailer transport using Mailjet SMTP
-const transporter = nodemailer.createTransport({
-//   host: 'in-v3.mailjet.com',
- host:"smtp.ethereal.email",
-  port: 587,
-  secure: false, // true for 465
-  auth: {
-    user: process.env.test_mail_user, 
-    pass: process.env.test_mail_pass,
-  },
-});
+const { Resend } = require("resend");
 
-const sendOTP = async (user, accessToken) => {
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-  // Generate 5-digit OTP
-  const otp = Math.floor(10000 + Math.random() * 90000);
+const sendOTPEmail = async (user, accessToken) => {
+  const otp = Math.floor(10000 + Math.random() * 90000).toString();
 
-  // Store OTP in cache / Redis
-  cache.set(user.email, otp.toString(), 600); // 10 min TTL
-  console.log("OTP SAVED:", user.email, otp);
-  const storedOTP = cache.get(user.email);
-    // console.log(storedOTP,user.email)
+  // Save for 10 minutes
+  const key = `otp:${user.email.toLowerCase().trim()}`;
+
+  cache.set(key, otp.toString(), 600);
+
+  // console.log("Saved OTP:", key, otp);
 
   const verificationLink = `${process.env.APP_URL}/verify-email?codeInfo=${otp}/${accessToken}`;
 
-  // Send email
-  await transporter.sendMail({
-    from: `"HUSHLAD Team" <${process.env.FROM_EMAIL}>`, // must be verified sender
+  await resend.emails.send({
+    from: process.env.FROM_EMAIL,
     to: user.email,
-    subject: 'Verify Your Account',
-    text: `Hello ${user.name}, your verification code is ${otp}. This code expires in 10 minutes.`,
+    subject: "Verify your account",
     html: `
-      <div style="font-family:Arial,sans-serif; max-width:600px; margin:20px auto;">
-        <h2>Hello ${user.name},</h2>
-        <p>Your verification code is:</p>
-        <h1 style="color:#0051ff">${otp}</h1>
-        <p>Or click <a href="${verificationLink}">here</a> to verify directly.</p>
-        <p>This code expires in 10 minutes.</p>
-      </div>
-    `,
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8">
+        </head>
+
+        <body style="background:#f5f7fb;font-family:Arial,sans-serif;padding:20px;">
+
+        <div style="min-width:300px;margin:auto;background:white;border-radius:12px;padding:20px;">
+
+        <h2 style="margin-top:0;">
+        Hello ${user.name},
+        </h2>
+
+        <p>
+        Welcome to <strong>Quantum Financial system</strong>.
+        </p>
+
+        <p>
+        Use the verification code below:
+        </p>
+
+        <div
+        style="
+        background:#0057ff;
+        color:white;
+        font-size:34px;
+        font-weight:bold;
+        padding:18px;
+        text-align:center;
+        border-radius:12px;
+        letter-spacing:8px;
+        margin:25px 0;
+        ">
+        ${otp}
+        </div>
+
+        <p>
+        This code expires in <strong>10 minutes</strong>.
+        </p>
+
+        <p style="text-align:center;margin:35px 0;">
+
+        <a
+        href="${verificationLink}"
+        style="
+        background:#0057ff;
+        color:white;
+        padding:14px 30px;
+        border-radius:8px;
+        text-decoration:none;
+        display:inline-block;
+        font-weight:bold;
+        ">
+        Verify Account
+        </a>
+
+        </p>
+
+        <p>
+        If you didn't request this email, simply ignore it.
+        </p>
+
+        <hr>
+
+        <p style="font-size:12px;color:#888;">
+        © ${new Date().getFullYear()} Quantum Financial system
+        </p>
+
+        </div>
+
+        </body>
+        </html>
+        `,
   });
-
-
-  console.log('OTP email sent to', user.email);
-  
   return otp;
-
 };
 
-module.exports = sendOTP;
+
+const sendWelcomeEmail = async (user) => {
+  await resend.emails.send({
+    from: process.env.FROM_EMAIL,
+    to: user.email,
+    subject: "🎉 Welcome to Quantum Financial system",
+    html: `
+        <!DOCTYPE html>
+        <html>
+
+        <body
+        style="
+        background:#f5f7fb;
+        font-family:Arial,sans-serif;
+        padding:20px;
+        ">
+
+        <div
+        style="
+        min-width:300px;
+        margin:auto;
+        background:white;
+        padding:20px;
+        border-radius:14px;
+        ">
+
+                <h1 style="color:#0057ff;">
+                Welcome, ${user.name}! 🎉
+                </h1>
+
+                <p>
+                We're excited to have you join <strong>Quantum Financial system</strong>.
+                </p>
+
+                <p>
+                Your account has been created successfully.
+                </p>
+
+                <h3>Here's what you can do next:</h3>
+
+                <ul>
+                <li>✔ Verify your identity</li>
+                <li>✔ Deposit cryptocurrency</li>
+                <li>✔ Buy & Sell Crypto</li>
+                <li>✔ Withdraw funds securely</li>
+                <li>✔ Enable Two-Factor Authentication</li>
+                </ul>
+
+                <div style="text-align:center;margin-top:40px;">
+
+                <a
+                href="${process.env.APP_URL}/dashboard"
+                style="
+                background:#0057ff;
+                color:white;
+                padding:15px 35px;
+                border-radius:8px;
+                text-decoration:none;
+                font-weight:bold;
+                ">
+                Go to Dashboard
+                </a>
+
+                </div>
+
+                <hr style="margin:40px 0;">
+
+                <p style="font-size:13px;color:#888;">
+                Need help?
+                Contact our support team anytime.
+                </p>
+
+                <p style="font-size:12px;color:#999;">
+                © ${new Date().getFullYear()} Quantum Financial system. All rights reserved.
+                </p>
+
+                </div>
+
+                </body>
+
+                </html>
+        `,
+          });
+};
+
+
+module.exports = { sendOTPEmail,sendWelcomeEmail  };
