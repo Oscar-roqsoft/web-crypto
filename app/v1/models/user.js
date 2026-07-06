@@ -74,7 +74,18 @@ const UserSchema = new mongoose.Schema({
     },
     selfieFile:{
       type:String,
-    }
+    }, 
+    status: {
+      type: String,
+      enum: ["not_started", "pending", "verified", "rejected"],
+      default: "not_started",
+    },
+  
+    submittedAt: Date,
+  
+    reviewedAt: Date,
+  
+    rejectionReason: String,
   },
 
   twoFactorVerification:{

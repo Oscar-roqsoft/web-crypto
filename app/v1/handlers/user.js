@@ -13,29 +13,72 @@ const {
 
 
 const updateProfile = async (req, res) => {
-
   try {
 
-    const userId = req.user.userId; // coming from verifyToken middleware
+    const userId = req.user.userId;
 
-    const { name, phone, country, avatar } = req.body;
+    const {
+      name,
+      phone,
+      country,
+      avatar,
+      userIdentity,
+    } = req.body;
 
     const user = await User.findById(userId);
 
     if (!user) {
-      return sendBadRequestResponse(res, "User not found");
+      return sendBadRequestResponse(
+        res,
+        "User not found"
+      );
     }
 
-    // Update fields if provided
+    // -----------------------------
+    // Basic Profile
+    // -----------------------------
+
     if (name) user.name = name;
     if (phone) user.phone = phone;
     if (country) user.country = country;
     if (avatar) user.avatar = avatar;
 
-    // Handle avatar upload
+    // -----------------------------
+    // Avatar Upload
+    // -----------------------------
+
     if (req.file) {
-      const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-      user.avatar = avatarUrl;
+      user.avatar = `${req.protocol}://${req.get(
+        "host"
+      )}/uploads/${req.file.filename}`;
+    }
+
+    // -----------------------------
+    // KYC
+    // -----------------------------
+
+    if (userIdentity) {
+
+      user.userIdentity = {
+        ...user.userIdentity,
+
+        firstName: userIdentity.firstName,
+        lastName: userIdentity.lastName,
+        dob: userIdentity.dob,
+        nationality: userIdentity.nationality,
+        address: userIdentity.address,
+
+        documentType: userIdentity.documentType,
+        documentNumber: userIdentity.documentNumber,
+
+        frontFile: userIdentity.frontFile,
+        backFile: userIdentity.backFile,
+        selfieFile: userIdentity.selfieFile,
+
+        status: "pending",
+        submittedAt: new Date(),
+      };
+
     }
 
     await user.save();
@@ -47,12 +90,19 @@ const updateProfile = async (req, res) => {
       phone: user.phone,
       country: user.country,
       avatar: user.avatar,
+
       walletAddress: user.walletAddress,
       balances: user.balances,
-      role: user.role
+
+      role: user.role,
+      isVerified: user.isVerified,
+      isPinSet: user.isPinSet,
+      twoFactorVerification: user.twoFactorVerification,
+
+      userIdentity: user.userIdentity,
     };
 
-    sendSuccessResponseData(
+    return sendSuccessResponseData(
       res,
       "Profile updated successfully",
       safeUser
@@ -60,13 +110,15 @@ const updateProfile = async (req, res) => {
 
   } catch (error) {
 
-    console.error("Update profile error:", error);
-    sendUnauthenticatedErrorResponse(res, error.message);
+    console.error(error);
+
+    return sendUnauthenticatedErrorResponse(
+      res,
+      error.message
+    );
 
   }
-
 };
-
 
 const updateUserPassword = async (req, res) => {
 
