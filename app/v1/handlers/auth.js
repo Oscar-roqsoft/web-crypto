@@ -383,24 +383,24 @@ const updatePassword = async (req, res) => {
 };
 
 
-// const User = require("./models/User");
 
-// const createAdmin = async () => {
+  // const createAdmin = async () => {
 
-//   const admin = new User({
-//     name:"admin",
-//     email:"admin@admin.com",
-//     password:"admin4admin",
-//     role:"admin",
-//     country:"nigeria"
-//   });
+  // const admin = new User({
+  //   name:"admin",
+  //   email:"admin@admin.com",
+  //   password:"admin4admin",
+  //   role:"admin",
+  //   country:"nigeria",
+  //   isVerified:true
+  // });
 
-//   await admin.save();
+  // await admin.save();
 
-//   console.log("Admin created");
-// }
+  // console.log("Admin created");
+  // }
 
-// createAdmin();
+  // createAdmin();
 
 
 

@@ -100,10 +100,7 @@ const UserSchema = new mongoose.Schema({
   },
 
   // User profile picture/avatar
-  avatar:{
-    type:String,
-    default:null
-  },
+
 
   // Email verification status
   isVerified:{

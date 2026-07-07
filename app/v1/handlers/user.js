@@ -13,9 +13,11 @@ const {
 
 
 const updateProfile = async (req, res) => {
+  
   try {
 
     const userId = req.user.userId;
+   
 
     const {
       name,
@@ -23,6 +25,7 @@ const updateProfile = async (req, res) => {
       country,
       avatar,
       userIdentity,
+      twoFactorVerification
     } = req.body;
 
     const user = await User.findById(userId);
@@ -42,6 +45,7 @@ const updateProfile = async (req, res) => {
     if (phone) user.phone = phone;
     if (country) user.country = country;
     if (avatar) user.avatar = avatar;
+    if (twoFactorVerification) user.twoFactorVerification = twoFactorVerification;
 
     // -----------------------------
     // Avatar Upload
@@ -58,30 +62,22 @@ const updateProfile = async (req, res) => {
     // -----------------------------
 
     if (userIdentity) {
-
-      user.userIdentity = {
-        ...user.userIdentity,
-
-        firstName: userIdentity.firstName,
-        lastName: userIdentity.lastName,
-        dob: userIdentity.dob,
-        nationality: userIdentity.nationality,
-        address: userIdentity.address,
-
-        documentType: userIdentity.documentType,
-        documentNumber: userIdentity.documentNumber,
-
-        frontFile: userIdentity.frontFile,
-        backFile: userIdentity.backFile,
-        selfieFile: userIdentity.selfieFile,
-
-        status: "pending",
-        submittedAt: new Date(),
-      };
-
+      Object.assign(user.userIdentity, userIdentity);
+    
+      if (
+        userIdentity.status === "pending" &&
+        !user.userIdentity.submittedAt
+      ) {
+        user.userIdentity.submittedAt = new Date();
+      }
+    
+      user.markModified("userIdentity");
     }
-
+  
     await user.save();
+    const savedUser = await User.findById(user._id).lean();
+
+    console.dir(savedUser.userIdentity, { depth: null });
 
     const safeUser = {
       id: user._id,
@@ -119,6 +115,98 @@ const updateProfile = async (req, res) => {
 
   }
 };
+
+const approveKYC = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return sendBadRequestResponse(res, "User not found");
+    }
+
+    user.twoFactorVerification = true;
+
+    user.userIdentity.status = "verified";
+    user.userIdentity.reviewedAt = new Date();
+    user.userIdentity.rejectionReason = null;
+
+    user.markModified("userIdentity");
+
+    await user.save();
+
+    return sendSuccessResponseData(
+      res,
+      "KYC approved successfully",
+      {
+        id: user._id,
+        twoFactorVerification: user.twoFactorVerification,
+        userIdentity: user.userIdentity,
+      }
+    );
+  } catch (error) {
+    console.error(error);
+
+    return sendUnauthenticatedErrorResponse(
+      res,
+      error.message
+    );
+  }
+};
+
+/*
+|--------------------------------------------------------------------------
+| REJECT KYC
+|--------------------------------------------------------------------------
+*/
+const rejectKYC = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return sendBadRequestResponse(
+        res,
+        "Rejection reason is required."
+      );
+    }
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return sendBadRequestResponse(res, "User not found");
+    }
+
+    user.twoFactorVerification = false;
+
+    user.userIdentity.status = "rejected";
+    user.userIdentity.reviewedAt = new Date();
+    user.userIdentity.rejectionReason = reason;
+
+    user.markModified("userIdentity");
+
+    await user.save();
+
+    return sendSuccessResponseData(
+      res,
+      "KYC rejected successfully",
+      {
+        id: user._id,
+        twoFactorVerification: user.twoFactorVerification,
+        userIdentity: user.userIdentity,
+      }
+    );
+  } catch (error) {
+    console.error(error);
+
+    return sendUnauthenticatedErrorResponse(
+      res,
+      error.message
+    );
+  }
+};
+
 
 const updateUserPassword = async (req, res) => {
 
@@ -202,6 +290,9 @@ const getUsersWithBalances = async (req, res) => {
           phone: 1,
           isVerified: 1,
           totalBalance: 1,
+          userIdentity:1,
+          country:1,
+          twoFactorVerification:1,
           wallets: {
             $map: {
               input: "$wallets",
@@ -240,5 +331,7 @@ const getUsersWithBalances = async (req, res) => {
 module.exports = {
   updateProfile,
   getUsersWithBalances,
-  updateUserPassword
+  updateUserPassword,
+  approveKYC,
+  rejectKYC,
 };
