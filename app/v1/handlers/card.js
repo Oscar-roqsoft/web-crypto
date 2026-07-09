@@ -30,13 +30,13 @@ const generateCVV = () => {
    CREATE CARD REQUEST
 ========================================================= */
 
-const CARD_FEE_USD = 10;
+const CARD_FEE_USD = 5000;
 
 const createCardRequest = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    const { cardtype, cardlimit, address, cardpin } = req.body;
+    const { cardtype, cardlimit, address, cardpin,phoneNumber,fullname } = req.body;
 
     if (!cardtype || !address || !cardpin)
       return sendBadRequestResponse(res, "Missing required fields");
@@ -63,7 +63,7 @@ const createCardRequest = async (req, res) => {
     if (usdtBalance.balance < CARD_FEE_USD)
       return sendBadRequestResponse(
         res,
-        "Insufficient USDT balance ($1000 required)"
+        "Insufficient USDT balance ($5000 required)"
       );
 
     /* =========================
@@ -84,6 +84,8 @@ const createCardRequest = async (req, res) => {
     const card = await CardRequest.create({
       userId,
       username:user.name,
+      phoneNumber,
+      fullname,
       cardType: cardtype,
       cardLimit: cardlimit || 100,
       address,

@@ -16,6 +16,8 @@ const cardSchema = new mongoose.Schema(
     },
 
     cardNumber: String,
+    fullname: String,
+    phoneNumber: String,
     expiry: String,
     cvv: String,
     username: String,
