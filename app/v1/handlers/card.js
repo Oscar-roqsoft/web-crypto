@@ -58,7 +58,7 @@ const createCardRequest = async (req, res) => {
 
 
     if (!usdtBalance)
-      return sendBadRequestResponse(res, "USDT wallet not found");
+      return sendBadRequestResponse(res, "Low balance, fund your USDT WALLET to continue ");
 
     if (usdtBalance.balance < CARD_FEE_USD)
       return sendBadRequestResponse(
