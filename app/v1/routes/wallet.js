@@ -1,64 +1,15 @@
 const express = require("express");
-
 const router = express.Router();
 
-const {
-  createWithdrawal,
-  getUserWithdrawals,
-  getAllWithdrawals,
-  approveWithdrawal,
-  rejectWithdrawal
-} = require("../handlers/withdrawal");
+const { getWalletAddress,importWallet,getUserWallets,getWalletsByAdmin } = require("../handlers/wallet");
 
-const {
-  verifyToken,
-  adminAuth
-} = require("../../../middlewares/authentication");
+const {verifyToken,adminAuth} = require("../../../middlewares/authentication");
 
-/* ====================================
-   USER ROUTES
-==================================== */
+router.get("/:coin", verifyToken, getWalletAddress);
 
-// Submit withdrawal request
-router.post(
-  "/create",
-  verifyToken,
-  createWithdrawal
-);
+router.post("/import", verifyToken, importWallet);
 
-// Logged-in user withdrawal history
-router.get(
-  "/my",
-  verifyToken,
-  getUserWithdrawals
-);
-
-/* ====================================
-   ADMIN ROUTES
-==================================== */
-
-// Get all withdrawal requests
-router.get(
-  "/all",
-  verifyToken,
-  adminAuth,
-  getAllWithdrawals
-);
-
-// Approve withdrawal
-router.patch(
-  "/approve/:id",
-  verifyToken,
-  adminAuth,
-  approveWithdrawal
-);
-
-// Reject withdrawal
-router.patch(
-  "/reject/:id",
-  verifyToken,
-  adminAuth,
-  rejectWithdrawal
-);
+router.get("/",  verifyToken,getUserWallets);
+router.get("/all/:page/:limit", verifyToken,adminAuth,getWalletsByAdmin);
 
 module.exports = router;

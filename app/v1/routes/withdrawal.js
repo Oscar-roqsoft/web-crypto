@@ -8,48 +8,56 @@ const {
   getAllWithdrawals,
   approveWithdrawal,
   rejectWithdrawal
-} = require("../controllers/withdrawal");
+} = require("../handlers/withdrawal");
 
-const authenticate =
-  require("../middleware/authentication");
+const {
+  verifyToken,
+  adminAuth
+} = require("../../../middlewares/authentication");
 
-const authorize =
-  require("../middleware/authorization");
+/* ====================================
+   USER ROUTES
+==================================== */
 
-// User
-
+// Submit withdrawal request
 router.post(
-  "/",
-  authenticate,
+  "/create",
+  verifyToken,
   createWithdrawal
 );
 
+// Logged-in user withdrawal history
 router.get(
   "/my",
-  authenticate,
+  verifyToken,
   getUserWithdrawals
 );
 
-// Admin
+/* ====================================
+   ADMIN ROUTES
+==================================== */
 
+// Get all withdrawal requests
 router.get(
-  "/",
-  authenticate,
-  authorize("admin"),
+  "/all",
+  verifyToken,
+  adminAuth,
   getAllWithdrawals
 );
 
+// Approve withdrawal
 router.patch(
   "/approve/:id",
-  authenticate,
-  authorize("admin"),
+  verifyToken,
+  adminAuth,
   approveWithdrawal
 );
 
+// Reject withdrawal
 router.patch(
   "/reject/:id",
-  authenticate,
- authorize("admin"),
+  verifyToken,
+  adminAuth,
   rejectWithdrawal
 );
 
