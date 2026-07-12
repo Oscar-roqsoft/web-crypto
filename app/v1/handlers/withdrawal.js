@@ -189,13 +189,14 @@ const getAllWithdrawals = async (req, res) => {
   }
 };
 
+
 /* =========================
    ADMIN APPROVE
 ========================= */
 
 const approveWithdrawal = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id,txHash } = req.params;
 
     const withdrawal =
       await Withdrawal.findById(id);
@@ -215,7 +216,7 @@ const approveWithdrawal = async (req, res) => {
       withdrawal.status = "approved";
       withdrawal.approvedBy = req.user.userId;
       withdrawal.approvedAt = new Date();
-      withdrawal.txHash = txHash; // from your wallet provider or entered by admin
+      withdrawal.txHash = txHash || ""; // from your wallet provider or entered by admin
       
       await withdrawal.save();
 
@@ -237,7 +238,7 @@ const approveWithdrawal = async (req, res) => {
 
 const rejectWithdrawal = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id,reason } = req.params;
 
     const withdrawal =
       await Withdrawal.findById(id);
