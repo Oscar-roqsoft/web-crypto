@@ -45,8 +45,8 @@ const WithdrawalSchema = new mongoose.Schema(
     },
 
     usdValue: {
-      type: Number,
-      default: 0
+      type: String,
+      default: ""
     },
 
     txHash: {
