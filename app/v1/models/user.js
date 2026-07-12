@@ -213,7 +213,7 @@ UserSchema.methods.createJWT = function(){
       email:this.email     // user email stored in token
     },
     process.env.JWT_SECRET, // secret key from environment variables
-    { expiresIn:"30d" }     // token expires in 30 days
+    { expiresIn:"30m" }     // token expires in 30 days
   )
 
 }
@@ -229,11 +229,15 @@ UserSchema.methods.comparePassword = async function(password){
 }
 
 
-UserSchema.methods.comparePin = async function(pin){
+UserSchema.methods.comparePin = async function (pin) {
 
-  return await bcrypt.compare(pin,this.pin)
+  if (!this.pin) {
+      throw new Error("Transaction PIN not found.");
+  }
 
-}
+  return await bcrypt.compare(pin, this.pin);
+
+};
 
 
 // Export the model

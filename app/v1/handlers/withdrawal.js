@@ -21,7 +21,8 @@ const createWithdrawal = async (req, res) => {
       network,
       amount,
       walletAddress,
-      pin
+      pin,
+      usdValue
     } = req.body;
 
     if (
@@ -35,15 +36,19 @@ const createWithdrawal = async (req, res) => {
         res,
         "Missing required fields."
       );
-    }
 
-    const user = await User.findById(userId);
+    }
+    if (!/^\d{4}$/.test(pin)) {
+        return sendBadRequestResponse(res, 'Pin must be exactly 4 digits');
+      }
+
+    const user = await User.findById(userId).select("+pin");
 
     if (!user)
       return sendBadRequestResponse(res, "User not found");
 
     // Verify PIN
-    const isCorrectPin = await user.comparePin(pin);
+    const isCorrectPin = await user.comparePin(pin);;
 
     if (!isCorrectPin)
       return sendBadRequestResponse(
@@ -78,13 +83,14 @@ const createWithdrawal = async (req, res) => {
         "-" +
         Math.floor(Math.random() * 100000);
 
+
     const withdrawal = await Withdrawal.create({
         userId,
         coin,
         network,
         walletAddress,
         amount,
-        usdValue: amount * balance.usdPrice,
+        usdValue: usdValue,
         fee: 0,
         netAmount: amount,
         reference

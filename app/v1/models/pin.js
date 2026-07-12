@@ -25,4 +25,6 @@ pinSchema.methods.setPin = async function(pin){
   
 }
 
+
+
 module.exports = mongoose.model("Size", pinSchema);
