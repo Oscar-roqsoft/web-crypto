@@ -1,17 +1,28 @@
-// models/AdminWallet.js
 const mongoose = require("mongoose");
 
 const AdminWalletSchema = new mongoose.Schema({
-  usdtTrc20: {
+  coin: {
     type: String,
     required: true,
-    unique: true,
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
+
+  network: {
+    type: String,
+    required: true,
   },
-})
 
+  walletAddress: {
+    type: String,
+    required: true,
+  }
 
-module.exports =  mongoose.model("AdminWallet", AdminWalletSchema);
+}, {
+  timestamps: true
+});
+
+AdminWalletSchema.index(
+  { coin: 1, network: 1 },
+  { unique: true }
+);
+
+module.exports = mongoose.model("AdminWalletV2", AdminWalletSchema);

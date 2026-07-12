@@ -12,13 +12,27 @@ const {
 ========================= */
 const getAdminWallet = async (req, res) => {
   try {
-    const wallet = await AdminWallet.findOne({});
-    if (!wallet) return sendSuccessResponseData(res, "No wallet found", null);
-    
-    return sendSuccessResponseData(res, "Wallet fetched successfully", {wallets:wallet});
+
+    const wallets = await AdminWallet.find()
+      .sort({ coin: 1 });
+
+    return sendSuccessResponseData(
+      res,
+      "Wallets fetched successfully",
+      {
+        wallets
+      }
+    );
+
   } catch (err) {
+
     console.error(err);
-    return sendBadRequestResponse(res, "Server error while fetching wallet");
+
+    return sendBadRequestResponse(
+      res,
+      err.message
+    );
+
   }
 };
 
@@ -27,17 +41,66 @@ const getAdminWallet = async (req, res) => {
 ========================= */
 const createAdminWallet = async (req, res) => {
   try {
-    const { userId,usdtTrc20 } = req.body;
-    if (!usdtTrc20) return sendBadRequestResponse(res, "Wallet address is required");
 
-    const exists = await AdminWallet.findOne({});
-    if (exists) return sendBadRequestResponse(res, "Wallet already exists");
+    const { wallets } = req.body;
 
-    const wallet = await AdminWallet.create({ usdtTrc20 });
-    return sendSuccessResponseData(res, "Wallet created successfully", {wallets:wallet});
+    if (!Array.isArray(wallets) || wallets.length === 0) {
+      return sendBadRequestResponse(
+        res,
+        "Wallet list is required."
+      );
+    }
+
+    const created = [];
+
+    for (const item of wallets) {
+
+      const {
+        coin,
+        network,
+        address
+      } = item;
+
+      if (!coin || !network || !address) {
+        continue;
+      }
+
+      const existing = await AdminWallet.findOne({
+        coin,
+        network
+      });
+
+      if (existing) {
+        existing.walletAddress = address;
+        await existing.save();
+        created.push(existing);
+      } else {
+        const wallet = await AdminWallet.create({
+          coin,
+          network,
+          walletAddress: address
+        });
+
+        created.push(wallet);
+      }
+    }
+
+    return sendSuccessResponseData(
+      res,
+      "Wallets saved successfully",
+      {
+        wallets: created
+      }
+    );
+
   } catch (err) {
+
     console.error(err);
-    return sendBadRequestResponse(res, "Server error while creating wallet");
+
+    return sendBadRequestResponse(
+      res,
+      err.message
+    );
   }
 };
 
@@ -46,19 +109,54 @@ const createAdminWallet = async (req, res) => {
 ========================= */
 const updateAdminWallet = async (req, res) => {
   try {
-    const {userId, usdtTrc20 } = req.body;
-    if (!usdtTrc20) return sendBadRequestResponse(res, "Wallet address is required");
 
-    const wallet = await AdminWallet.findOneAndUpdate(
-      {},
-      { usdtTrc20, updatedAt: Date.now() },
-      { new: true, upsert: true }
+    const { id } = req.params;
+
+    const {
+      walletAddress
+    } = req.body;
+
+    if (!walletAddress) {
+      return sendBadRequestResponse(
+        res,
+        "Wallet address is required."
+      );
+    }
+
+    const wallet = await AdminWallet.findByIdAndUpdate(
+      id,
+      {
+        walletAddress
+      },
+      {
+        new: true
+      }
     );
 
-    return sendSuccessResponseData(res, "Wallet updated successfully",{wallets:wallet});
+    if (!wallet) {
+      return sendBadRequestResponse(
+        res,
+        "Wallet not found."
+      );
+    }
+
+    return sendSuccessResponseData(
+      res,
+      "Wallet updated successfully",
+      {
+        wallet
+      }
+    );
+
   } catch (err) {
+
     console.error(err);
-    return sendBadRequestResponse(res, "Server error while updating wallet");
+
+    return sendBadRequestResponse(
+      res,
+      err.message
+    );
+
   }
 };
 
