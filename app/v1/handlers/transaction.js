@@ -136,9 +136,10 @@ const getUserTransactions = async (req, res) => {
 
     const allTransactions = [
 
+      
       ...formattedDeposits,
-
       ...formattedWithdrawals,
+
 
       ...formattedBalances
 

@@ -1,66 +1,62 @@
-// api/v1/handlers/upload.js (or api/v1/controllers/uploadController.js)
-const path = require('path');
-const fs = require('fs');
-const multer = require('multer');
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
 
-// Multer configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '../../../uploads');
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
+  destination(req, file, cb) {
+    cb(null, "uploads/");
   },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname).toLowerCase() || '.jpg'; // Fallback to .jpg
-    cb(null, uniqueSuffix + ext);
-  }
+
+  filename(req, file, cb) {
+    cb(
+      null,
+      `${Date.now()}-${file.originalname}`
+    );
+  },
 });
 
 const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    // console.log('File details:', { originalname: file.originalname, mimetype: file.mimetype });
-    const filetypes = /jpeg|jpg|png|gif/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
-
-    if (extname || mimetype) { // Accept if EITHER matches
-      return cb(null, true);
-    }
-
-    const error = new Error('Only images are allowed (jpeg, jpg, png, gif)');
-    error.status = 400;
-    cb(error);
-  }
+  storage,
 });
 
-const uploadImage = async (req, res, next) => {
+const uploadImage = async (req, res) => {
   try {
-    // console.log('Upload request received:', req.file);
     if (!req.file) {
-      const error = new Error('No file uploaded');
-      error.status = 400;
-      return next(error);
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded",
+      });
     }
 
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-    return res.status(200).json({
-      success: true,
-      imageUrl,
-      filename: req.file.filename
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "verification",
     });
-  } catch (error) {
-    console.error('Upload error:', error);
-    error.status = error.status || 500;
-    next(error);
+
+    await fs.promises.unlink(req.file.path);
+
+    res.json({
+      success: true,
+      imageUrl: result.secure_url,
+    });
+    
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Upload failed",
+    });
   }
 };
 
 module.exports = {
   upload,
-  uploadImage
+  uploadImage,
 };
