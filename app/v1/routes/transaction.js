@@ -5,6 +5,6 @@ const {verifyToken,adminAuth} = require('../../../middlewares/authentication')
 
 router.get('/all', verifyToken, getUserTransactions)
 
-router.get('/admin/all', adminAuth, getUserAdminTransactions)
+router.get('/admin/all',verifyToken, adminAuth, getUserAdminTransactions)
 
 module.exports = router
