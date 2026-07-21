@@ -180,30 +180,54 @@ const getUserAdminTransactions = async (req, res) => {
 
   try {
 
-    const userId = req.user.userId;
 
-
-    if (!userId) {
-      return sendBadRequestResponse(
-        res,
-        "User not authenticated"
-      );
-    }
+    /*
+    ============================
+    FETCH ALL DATA
+    ============================
+    */
 
 
     const [
       deposits,
       withdrawals,
       balances
+
     ] = await Promise.all([
 
-      Transaction.find({ userId }).lean(),
 
-      Withdrawal.find({ userId }).lean(),
+      Transaction
+      .find()
+      .populate(
+        "userId",
+        "name email"
+      )
+      .lean(),
 
-      Balance.find({ userId }).lean()
+
+
+      Withdrawal
+      .find()
+      .populate(
+        "userId",
+        "name email"
+      )
+      .lean(),
+
+
+
+      Balance
+      .find()
+      .populate(
+        "userId",
+        "name email"
+      )
+      .lean()
+
 
     ]);
+
+
 
 
 
@@ -213,31 +237,58 @@ const getUserAdminTransactions = async (req, res) => {
     ============================
     */
 
+
     const formattedDeposits = deposits.map(d => ({
 
-      _id: d._id,
 
-      type: "deposit",
+      _id:d._id,
 
-      coin: d.coin,
 
-      amount: d.amount,
+      type:"deposit",
 
-      network: d.network,
 
-      walletAddress: d.walletAddress || null,
+      userId:d.userId,
 
-      txHash: d.txHash || null,
 
-      reference: d.reference || null,
+      coin:d.coin,
 
-      status: d.status || "pending",
 
-      note: d.note || "",
+      amount:d.amount,
 
-      createdAt: d.createdAt
+
+      network:d.network,
+
+
+      walletAddress:
+      d.walletAddress || null,
+
+
+      txHash:
+      d.txHash || null,
+
+
+      reference:
+      d.reference || null,
+
+
+      status:
+      d.status || "pending",
+
+
+      note:
+      d.note || "",
+
+
+      createdAt:
+      d.createdAt
+
+
 
     }));
+
+
+
+
 
 
 
@@ -248,94 +299,158 @@ const getUserAdminTransactions = async (req, res) => {
     ============================
     */
 
-    const formattedWithdrawals = withdrawals.map(w => ({
 
-      _id: w._id,
-
-      type: "withdrawal",
-
-      coin: w.coin,
-
-      amount: w.amount,
-
-      network: w.network,
-
-      walletAddress: w.walletAddress,
-
-      fee: w.fee || 0,
-
-      netAmount: w.netAmount || w.amount,
-
-      reference: w.reference || null,
-
-      status: w.status || "pending",
-
-      note: w.note || "",
-
-      createdAt: w.createdAt
-
-    }));
+    const formattedWithdrawals =
+    withdrawals.map(w=>({
 
 
+      _id:w._id,
 
 
+      type:"withdrawal",
 
-    /*
-    ============================
-    SEND / SWAP
-    ============================
-    */
 
-    const formattedBalances = balances.map(b => ({
+      userId:w.userId,
 
-      _id: b._id,
 
-      type: b.type || "transfer",
+      coin:w.coin,
 
-      coin: b.coin || b.fromCoin,
 
-      amount: b.amount || b.fromAmount,
+      amount:w.amount,
 
-      toCoin: b.toCoin || null,
 
-      toAmount: b.toAmount || null,
+      network:w.network,
 
-      recipientAddress:
-        b.recipientAddress || null,
 
-      gasFee:
-        b.gasFee || 0,
+      walletAddress:
+      w.walletAddress,
 
-      status:
-        b.status || "completed",
+
+      fee:
+      w.fee || 0,
+
+
+      netAmount:
+      w.netAmount || w.amount,
+
 
       reference:
-        b.reference || null,
+      w.reference || null,
+
+
+      status:
+      w.status || "pending",
+
 
       note:
-        b.note || "",
+      w.note || "",
+
 
       createdAt:
-        b.createdAt
+      w.createdAt
+
+
 
     }));
 
 
 
 
+
+
+
+
     /*
     ============================
-    MERGE
+    BALANCE / SEND / SWAP
     ============================
     */
+
+
+    const formattedBalances =
+    balances.map(b=>({
+
+
+
+      _id:b._id,
+
+
+      type:
+      b.type || "transfer",
+
+
+      userId:
+      b.userId,
+
+
+      coin:
+      b.coin || b.fromCoin,
+
+
+      amount:
+      b.amount || b.fromAmount,
+
+
+      toCoin:
+      b.toCoin || null,
+
+
+      toAmount:
+      b.toAmount || null,
+
+
+      recipientAddress:
+      b.recipientAddress || null,
+
+
+      gasFee:
+      b.gasFee || 0,
+
+
+      status:
+      b.status || "completed",
+
+
+      reference:
+      b.reference || null,
+
+
+      note:
+      b.note || "",
+
+
+      createdAt:
+      b.createdAt
+
+
+
+    }));
+
+
+
+
+
+
+
+
+    /*
+    ============================
+    MERGE ALL
+    ============================
+    */
+
 
     const transactions = [
 
+
       ...formattedDeposits,
+
 
       ...formattedWithdrawals,
 
+
       ...formattedBalances
+
 
     ].sort(
       (a,b)=>
@@ -346,32 +461,55 @@ const getUserAdminTransactions = async (req, res) => {
 
 
 
+
+
+
+
+
     return sendSuccessResponseData(
+
       res,
-      "Transactions fetched",
+
+      "Admin transactions fetched",
+
       {
+
+
         transactions,
 
-        deposits: formattedDeposits,
 
-        withdrawals: formattedWithdrawals,
+        total:
+        transactions.length
 
-        total: transactions.length
+
       }
+
     );
+
+
 
 
 
   } catch(error){
 
-    console.log(error);
 
-    return sendUnauthenticatedErrorResponse(
-      res,
-      error.message
+    console.error(
+      "Admin transaction error:",
+      error
     );
 
+
+    return sendUnauthenticatedErrorResponse(
+
+      res,
+
+      error.message
+
+    );
+
+
   }
+
 
 };
 
