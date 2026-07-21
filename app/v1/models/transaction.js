@@ -34,8 +34,13 @@ const depositTransactionSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected"],
       default: "pending"
     },
+    
 
     note: {
+      type: String,
+      default: ""
+    },
+    type: {
       type: String,
       default: ""
     },

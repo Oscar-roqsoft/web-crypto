@@ -8,11 +8,13 @@ const {
   sendUnauthenticatedErrorResponse
 } = require("../responses");
 
+
 const getUserTransactions = async (req, res) => {
 
   try {
 
     const userId = req.user.userId;
+
 
     if (!userId) {
       return sendBadRequestResponse(
@@ -21,25 +23,28 @@ const getUserTransactions = async (req, res) => {
       );
     }
 
-    /* =========================
-       FETCH DATA
-    ========================= */
 
-    const deposits = await Transaction
-      .find({ userId })
-      .lean();
+    const [
+      deposits,
+      withdrawals,
+      balances
+    ] = await Promise.all([
 
-    const balances = await Balance
-      .find({ userId })
-      .lean();
+      Transaction.find({ userId }).lean(),
 
-    const withdrawals = await Withdrawal
-      .find({ userId })
-      .lean();
+      Withdrawal.find({ userId }).lean(),
 
-    /* =========================
-       FORMAT DEPOSITS
-    ========================= */
+      Balance.find({ userId }).lean()
+
+    ]);
+
+
+
+    /*
+    ============================
+    DEPOSITS
+    ============================
+    */
 
     const formattedDeposits = deposits.map(d => ({
 
@@ -53,19 +58,28 @@ const getUserTransactions = async (req, res) => {
 
       network: d.network,
 
-      status: d.status || "pending",
+      walletAddress: d.walletAddress || null,
+
+      txHash: d.txHash || null,
 
       reference: d.reference || null,
 
-      txHash: d.txHash || null,
+      status: d.status || "pending",
+
+      note: d.note || "",
 
       createdAt: d.createdAt
 
     }));
 
-    /* =========================
-       FORMAT WITHDRAWALS
-    ========================= */
+
+
+
+    /*
+    ============================
+    WITHDRAWALS
+    ============================
+    */
 
     const formattedWithdrawals = withdrawals.map(w => ({
 
@@ -85,87 +99,105 @@ const getUserTransactions = async (req, res) => {
 
       netAmount: w.netAmount || w.amount,
 
-      reference: w.reference,
+      reference: w.reference || null,
 
       status: w.status || "pending",
+
+      note: w.note || "",
 
       createdAt: w.createdAt
 
     }));
 
-    /* =========================
-       FORMAT SEND / SWAP
-    ========================= */
 
-    const formattedBalances = balances.map(t => ({
 
-      _id: t._id,
 
-      type: t.type,
 
-      coin: t.coin || t.fromCoin,
+    /*
+    ============================
+    SEND / SWAP
+    ============================
+    */
 
-      amount: t.amount || t.fromAmount,
+    const formattedBalances = balances.map(b => ({
 
-      toCoin: t.toCoin || null,
+      _id: b._id,
 
-      toAmount: t.toAmount || null,
+      type: b.type || "transfer",
 
-      network: t.network || null,
+      coin: b.coin || b.fromCoin,
+
+      amount: b.amount || b.fromAmount,
+
+      toCoin: b.toCoin || null,
+
+      toAmount: b.toAmount || null,
 
       recipientAddress:
-        t.recipientAddress || null,
+        b.recipientAddress || null,
 
       gasFee:
-        t.gasFee || 0,
-
-      reference:
-        t.reference || null,
+        b.gasFee || 0,
 
       status:
-        t.status || "completed",
+        b.status || "completed",
+
+      reference:
+        b.reference || null,
+
+      note:
+        b.note || "",
 
       createdAt:
-        t.createdAt
+        b.createdAt
 
     }));
 
-    /* =========================
-       MERGE + SORT
-    ========================= */
 
-    const allTransactions = [
 
-      
+
+    /*
+    ============================
+    MERGE
+    ============================
+    */
+
+    const transactions = [
+
       ...formattedDeposits,
-      ...formattedWithdrawals,
 
+      ...formattedWithdrawals,
 
       ...formattedBalances
 
     ].sort(
-
-      (a, b) =>
-        new Date(b.createdAt) -
-        new Date(a.createdAt)
-
+      (a,b)=>
+      new Date(b.createdAt)
+      -
+      new Date(a.createdAt)
     );
+
+
 
     return sendSuccessResponseData(
       res,
       "Transactions fetched",
       {
-        transactions: allTransactions,
-        total: allTransactions.length
+        transactions,
+
+        deposits: formattedDeposits,
+
+        withdrawals: formattedWithdrawals,
+
+        total: transactions.length
       }
     );
 
-  } catch (error) {
 
-    console.error(
-      "Get transactions error:",
-      error
-    );
+
+  } catch(error){
+
+    console.log(error);
 
     return sendUnauthenticatedErrorResponse(
       res,
@@ -176,6 +208,8 @@ const getUserTransactions = async (req, res) => {
 
 };
 
-module.exports = {
+
+
+module.exports={
   getUserTransactions
 };
