@@ -1,7 +1,7 @@
 const Balance = require("../models/balance");
 const User = require("../models/user");
 const getCryptoPrices = require("../../../utils/getCryptoPrices");
-
+const Transaction = require("../models/transaction");
 
 const {
   sendSuccessResponse,
@@ -393,12 +393,12 @@ const swapCrypto = async (req, res) => {
 const fundUserWallet = async (req, res) => {
   try {
 
-    const { userId, coin, amount, network } = req.body;
+    const { userId, coin, amount, network,txHash = null,note = "" } = req.body;
 
     if (!userId || !coin || !amount || !network) {
       return sendBadRequestResponse(res, "Missing required fields");
     }
-
+    const numericAmount = Number(amount);
     const type = "fund"; // ✅ FORCE TYPE HERE
 
     let balance = await Balance.findOne({ userId, coin, network });
@@ -418,6 +418,27 @@ const fundUserWallet = async (req, res) => {
     balance.totalReceived += Number(amount);
 
     await balance.save();
+
+    await Transaction.create({
+
+      userId,
+
+      coin,
+
+      network,
+
+      amount: numericAmount,
+
+      txHash,
+
+      status: "approved",
+
+      note,
+
+      type: "fund"
+
+    });
+
 
     return sendSuccessResponseData(res, "Wallet funded successfully", {
       balance

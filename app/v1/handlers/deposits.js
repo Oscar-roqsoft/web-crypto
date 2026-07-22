@@ -75,24 +75,47 @@ const getAllDeposits = async (req, res) => {
 ========================= */
 const approveDeposit = async (req, res) => {
   try {
+
     const adminId = req.user.userId;
     const { id } = req.params;
 
     const deposit = await Deposit.findById(id);
 
-    if (!deposit)
+    if (!deposit) {
       return sendBadRequestResponse(res, "Deposit not found");
+    }
 
-    if (deposit.status !== "pending")
+    if (deposit.status !== "pending") {
       return sendBadRequestResponse(res, "Already processed");
+    }
 
-    // CREDIT USER BALANCE
     await UserBalance.findOneAndUpdate(
-      { userId: deposit.userId, coin: deposit.coin },
       {
-        $inc: { balance: deposit.amount }
+        userId: deposit.userId,
+        coin: deposit.coin,
+        network: deposit.network
       },
-      { upsert: true, new: true }
+      {
+        $inc: {
+          balance: deposit.amount,
+          totalReceived: deposit.amount
+        },
+
+        $set: {
+          status: "completed",
+          type: "fund"
+        },
+
+        $setOnInsert: {
+          userId: deposit.userId,
+          coin: deposit.coin,
+          network: deposit.network
+        }
+      },
+      {
+        upsert: true,
+        new: true
+      }
     );
 
     deposit.status = "approved";
@@ -103,8 +126,11 @@ const approveDeposit = async (req, res) => {
     return sendSuccessResponse(res, "Deposit approved");
 
   } catch (err) {
+
     console.error(err);
+
     return sendBadRequestResponse(res, err.message);
+
   }
 };
 
@@ -114,25 +140,33 @@ const approveDeposit = async (req, res) => {
 ========================= */
 const rejectDeposit = async (req, res) => {
   try {
+
+    const adminId = req.user.userId;
     const { id } = req.params;
 
     const deposit = await Deposit.findById(id);
 
-    if (!deposit)
+    if (!deposit) {
       return sendBadRequestResponse(res, "Deposit not found");
+    }
 
-    if (deposit.status !== "pending")
+    if (deposit.status !== "pending") {
       return sendBadRequestResponse(res, "Already processed");
+    }
 
     deposit.status = "rejected";
+    deposit.approvedBy = adminId;
 
     await deposit.save();
 
     return sendSuccessResponse(res, "Deposit rejected");
 
   } catch (err) {
+
     console.error(err);
+
     return sendBadRequestResponse(res, err.message);
+
   }
 };
 

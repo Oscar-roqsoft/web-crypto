@@ -135,13 +135,11 @@ const getUserTransactions = async (req, res) => {
     ========================= */
 
     const allTransactions = [
-
       
       ...formattedWithdrawals,
       ...formattedDeposits,
 
-
-      ...formattedBalances
+      // ...formattedBalances
 
     ].sort(
 
@@ -449,7 +447,6 @@ const getUserAdminTransactions = async (req, res) => {
       ...formattedWithdrawals,
 
 
-      ...formattedBalances
 
 
     ].sort(
