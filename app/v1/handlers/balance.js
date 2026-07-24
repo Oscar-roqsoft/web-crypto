@@ -74,35 +74,34 @@ const getUserBalances = async (req, res) => {
 
     let totalBalanceUSD = 0;
 
-
     const formattedBalances = SUPPORTED_COINS.map((coin) => {
-
-      const network = COIN_NETWORKS[coin];
-
-      const key = `${coin}_${network}`;
-
-      const balanceDoc = balanceMap[key];
-
-
-      const balance = balanceDoc ? balanceDoc.balance : 0;
-
-      const price = prices[coin] || 0;
-
-
-      const valueUSD = balance * price;
-
-      totalBalanceUSD += valueUSD;
-
-
-      return {
-        coin,
-        network,
-        balance,
-        usdPrice: price,
-        valueUSD
-      };
-
+    
+        const network = COIN_NETWORKS[coin];
+    
+        const key = `${coin}_${network}`.toUpperCase();
+    
+        const balanceDoc = balanceMap[key];
+    
+        const balance = Number(balanceDoc?.balance) || 0;
+    
+        const price = Number(prices?.[coin]) || 0;
+    
+        const valueUSD = Number((balance * price).toFixed(2));
+    
+        totalBalanceUSD += valueUSD;
+    
+        return {
+            coin,
+            network,
+            balance,
+            usdPrice: price,
+            valueUSD
+        };
+    
     });
+    
+    totalBalanceUSD = Number(totalBalanceUSD.toFixed(2));
+
 
 
     return sendSuccessResponseData(res,"Balances fetched",{
