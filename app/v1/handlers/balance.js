@@ -1,6 +1,6 @@
 const Balance = require("../models/balance");
 const User = require("../models/user");
-const getCryptoPrices = require("../../../utils/getCryptoPrices");
+const {fetchAllCryptoPrices} = require("../../../utils/cryptoPrices");
 const Transaction = require("../models/transaction");
 
 const {
@@ -57,7 +57,13 @@ const getUserBalances = async (req, res) => {
 
     const balances = await Balance.find({ userId });
 
-    const prices = await getCryptoPrices()
+    const prices = await fetchAllCryptoPrices();
+
+    // const prices = {};
+
+    // pricesArray.forEach(item => {
+    //     prices[item.symbol] = item.price;
+    // });
 
 
     // Convert DB balances to quick lookup map
