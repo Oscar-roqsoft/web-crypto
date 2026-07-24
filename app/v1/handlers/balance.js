@@ -329,7 +329,7 @@ const swapCrypto = async (req, res) => {
 
 
     /* 🔥 GET LIVE PRICES */
-    const prices = await getCryptoPrices();
+    const prices = await fetchAllCryptoPrices();
 
     const priceFrom = prices[fromCoin] || 0;
     const priceTo = prices[toCoin] || 0;
