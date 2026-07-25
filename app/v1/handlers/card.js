@@ -677,68 +677,68 @@ RE-REQUEST REJECTED CARD
 */
 
 
-const requestAgainCard = async(req,res)=>{
+const requestAgainCard = async (req, res) => {
+  try {
+    const userId = req.user.userId;
 
+    const {
+      cardId,
+      cardType,
+      fullname,
+      phoneNumber,
+      address,
+      cardLimit,
+    } = req.body;
 
-try{
+    if (!cardId) {
+      return sendBadRequestResponse(res, "Card ID is required");
+    }
 
+    const oldCard = await Card.findOne({
+      _id: cardId,
+      userId,
+    });
 
-const {
-cardId
-}=req.body;
+    if (!oldCard) {
+      return sendBadRequestResponse(res, "Card not found");
+    }
 
+    // Only rejected cards can be edited and re-requested
+    if (oldCard.status !== "rejected") {
+      return sendBadRequestResponse(
+        res,
+        "Only rejected cards can be requested again"
+      );
+    }
 
+    // Update editable fields
+    if (cardType) oldCard.cardType = cardType;
+    if (fullname) oldCard.fullname = fullname;
+    if (phoneNumber) oldCard.phoneNumber = phoneNumber;
+    if (address) oldCard.address = address;
+    if (cardLimit) oldCard.cardLimit = cardLimit;
 
-const oldCard =
-await Card.findById(cardId);
+    // Reset approval-related fields
+    oldCard.status = "pending";
+    oldCard.rejectionReason = "";
+    oldCard.cardNumber = null;
+    oldCard.expiry = null;
+    oldCard.cvv = null;
 
+    await oldCard.save();
 
+    return sendSuccessResponseData(
+      res,
+      "Card request submitted again",
+      {
+        card: oldCard,
+      }
+    );
+  } catch (error) {
+    console.error(error);
 
-if(!oldCard){
-
-return sendBadRequestResponse(
-res,
-"Card not found"
-);
-
-}
-
-
-
-if(oldCard.status!=="rejected"){
-
-return sendBadRequestResponse(
-res,
-"Only rejected cards can be requested again"
-);
-
-}
-
-
-
-oldCard.status="pending";
-oldCard.rejectionReason="";
-
-await oldCard.save();
-
-
-
-return sendSuccessResponse(
-res,
-"Card request submitted again"
-);
-
-
-
-}catch(error){
-
-return sendUnauthenticatedErrorResponse(
-res,
-error.message
-);
-
-}
-
+    return sendUnauthenticatedErrorResponse(res, error.message);
+  }
 };
 
 

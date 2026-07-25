@@ -26,7 +26,7 @@ const cardSchema = new mongoose.Schema(
 
     cardType:{
         type:String,
-        enum:["visa","master","amex"],
+        enum:["gold card","black card"],
         required:true
     },
 
