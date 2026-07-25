@@ -1,235 +1,765 @@
-const CardRequest = require("../models/cardRequest");
+const Card = require("../models/cardRequest");
+const Balance = require("../models/balance");
+const User = require("../models/user");
 const bcrypt = require("bcryptjs");
-const User = require('../models/user');
+
 
 const {
-  sendSuccessResponse,
-  sendSuccessResponseData,
-  sendBadRequestResponse,
-  sendUnauthenticatedErrorResponse
-} = require("../responses");
-
-const Balance = require("../models/balance");
+ sendSuccessResponse,
+ sendSuccessResponseData,
+ sendBadRequestResponse,
+ sendUnauthenticatedErrorResponse
+}=require("../responses");
 
 
 
-const generateCardNumber = () => {
-  return "4" + Math.floor(100000000000000 + Math.random() * 900000000000000);
-};
-
-const generateExpiry = () => {
-  const year = new Date().getFullYear() + 3;
-  return `12/${year.toString().slice(-2)}`;
-};
-
-const generateCVV = () => {
-  return Math.floor(100 + Math.random() * 900).toString();
-};
-
-/* =========================================================
-   CREATE CARD REQUEST
-========================================================= */
-
-const CARD_FEE_USD = 5000;
-
-const createCardRequest = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-
-    const { cardtype, cardlimit, address, cardpin,phoneNumber,fullname } = req.body;
-
-    if (!cardtype || !address || !cardpin)
-      return sendBadRequestResponse(res, "Missing required fields");
-
-    if (cardpin.length !== 4)
-      return sendBadRequestResponse(res, "PIN must be 4 digits");
-
-    /* =========================
-       STEP 1: CHECK USDT BALANCE
-    ========================= */
-
-    const usdtBalance = await Balance.findOne({
-      userId,
-      coin: "USDT"
-    });
-    const user = await User.findOne({
-      _id:userId
-    });
+const MINIMUM_BALANCE = 5000;
+const CARD_COST = 20;
 
 
-    if (!usdtBalance)
-      return sendBadRequestResponse(res, "Low balance, fund your USDT WALLET to continue ");
 
-    if (usdtBalance.balance < CARD_FEE_USD)
-      return sendBadRequestResponse(
-        res,
-        "Insufficient USDT balance ($5000 required)"
-      );
+const generateCardNumber = ()=>{
 
-    /* =========================
-       STEP 2: DEDUCT FEE
-    ========================= */
-
-    usdtBalance.balance -= CARD_FEE_USD;
-    usdtBalance.totalSent += CARD_FEE_USD;
-
-    await usdtBalance.save();
-
-    /* =========================
-       STEP 3: CREATE CARD
-    ========================= */
-
-    const hashedPin = await bcrypt.hash(cardpin, 10);
-
-    const card = await CardRequest.create({
-      userId,
-      username:user.name,
-      phoneNumber,
-      fullname,
-      cardType: cardtype,
-      cardLimit: cardlimit || 100,
-      address,
-      cardPin: hashedPin,
-      status: "pending"
-    });
-
-    return sendSuccessResponseData(res, "Card request successful", {
-      card,
-      feeCharged: CARD_FEE_USD,
-      remainingUSDT: usdtBalance.balance
-    });
-
-  } catch (err) {
-    console.error(err);
-    return sendUnauthenticatedErrorResponse(res, err.message);
-  }
+ return "4" +
+ Math.floor(
+  100000000000000 +
+  Math.random()*900000000000000
+ );
 
 };
 
 
-/* =========================================================
-   GET USER CARD REQUESTS
-========================================================= */
-const getMyCardRequests = async (req, res) => {
-  try {
-    const userId = req.user.userId;
 
-    const requests = await CardRequest.find({ userId }).sort({ createdAt: -1 });
+const generateExpiry = ()=>{
 
-    return sendSuccessResponseData(res, "Card requests fetched", {
-      count: requests.length,
-      requests
-    });
+ const year =
+ new Date().getFullYear()+3;
 
-  } catch (error) {
-    console.error("Get card requests error:", error);
-    return sendUnauthenticatedErrorResponse(res, error.message);
-  }
+ return `12/${String(year).slice(-2)}`;
+
 };
 
 
-/* =========================================================
-   ADMIN: GET ALL REQUESTS
-========================================================= */
-const getAllCardRequests = async (req, res) => {
-  try {
-    const requests = await CardRequest.find()
-      .populate("userId", "email name")
-      .sort({ createdAt: -1 });
 
-    return sendSuccessResponseData(res, "All card requests", {
-      count: requests.length,
-      requests
-    });
+const generateCVV = ()=>{
 
-  } catch (error) {
-    console.error("Admin fetch error:", error);
-    return sendUnauthenticatedErrorResponse(res, error.message);
-  }
+ return Math.floor(
+ 100+Math.random()*900
+ ).toString();
+
 };
 
 
-const fundCard = async (req, res) => {
-    try {
-      const { cardId, amount } = req.body;
-  
-      if (!amount || amount <= 0)
-        return sendBadRequestResponse(res, "Invalid amount");
-  
-      const card = await CardRequest.findById(cardId);
-  
-      if (!card)
-        return sendBadRequestResponse(res, "Card not found");
-  
-      card.balance += parseFloat(amount);
-  
-      await card.save();
-  
-      return sendSuccessResponseData(res, "Card funded", {
-        balance: card.balance
-      });
-  
-    } catch (err) {
-      console.error(err);
-      return sendUnauthenticatedErrorResponse(res, err.message);
-    }
-  };
 
 
-/* =========================================================
-   ADMIN: UPDATE STATUS
-========================================================= */
-const approveCard = async (req, res) => {
-    try {
-      const { cardId } = req.body;
-  
-      const card = await CardRequest.findById(cardId);
-  
-      if (!card)
-        return sendBadRequestResponse(res, "Card not found");
-  
-      card.cardNumber = generateCardNumber();
-      card.expiry = generateExpiry();
-      card.cvv = generateCVV();
-  
-      card.status = "active";
-  
-      await card.save();
-  
-      return sendSuccessResponse(res, "Card approved and activated");
-  
-    } catch (err) {
-      console.error(err);
-      return sendUnauthenticatedErrorResponse(res, err.message);
-    }
+/*
+====================================
+ USER CREATE CARD REQUEST
+====================================
+*/
+
+const createCardRequest = async(req,res)=>{
+
+try{
+
+
+const userId=req.user.userId;
+
+
+const {
+ cardtype,
+ address,
+ cardpin,
+ phoneNumber,
+ fullname,
+ cardlimit
+}=req.body;
+
+
+
+if(
+ !cardtype ||
+ !address ||
+ !cardpin ||
+ !phoneNumber ||
+ !fullname
+){
+
+return sendBadRequestResponse(
+res,
+"Missing required fields"
+);
+
+}
+
+
+
+if(!/^\d{4}$/.test(cardpin)){
+
+return sendBadRequestResponse(
+res,
+"PIN must contain 4 digits"
+);
+
+}
+
+
+
+
+const user =
+await User.findById(userId);
+
+
+
+if(!user){
+
+return sendBadRequestResponse(
+res,
+"User not found"
+);
+
+}
+
+
+
+
+/*
+CHECK USER TOTAL BALANCE
+*/
+
+
+const balances =
+await Balance.find({
+userId
+});
+
+
+
+let totalUSD = 0;
+
+
+
+balances.forEach(wallet=>{
+
+
+if(wallet.coin==="USDT"){
+
+ totalUSD += wallet.balance;
+
+}
+
+});
+
+
+
+
+if(totalUSD < MINIMUM_BALANCE){
+
+return sendBadRequestResponse(
+res,
+`Minimum balance of $${MINIMUM_BALANCE} required`
+);
+
+}
+
+
+
+
+// prevent duplicate pending card
+
+const existing =
+await Card.findOne({
+ userId,
+ status:{
+  $in:[
+   "pending",
+   "active"
+  ]
+ }
+});
+
+
+if(existing){
+
+return sendBadRequestResponse(
+res,
+"You already have an active or pending card"
+);
+
+}
+
+
+
+const hashedPin =
+await bcrypt.hash(cardpin,10);
+
+
+
+const card =
+await Card.create({
+
+userId,
+
+username:user.name,
+
+fullname,
+
+phoneNumber,
+
+cardType:cardtype,
+
+cardLimit:cardlimit || 100,
+
+address,
+
+cardPin:hashedPin,
+
+status:"pending"
+
+
+});
+
+
+
+
+
+return sendSuccessResponseData(
+res,
+"Card request submitted successfully",
+{
+
+card,
+
+cardCost:CARD_COST,
+
+balanceVerified:totalUSD
+
+}
+
+);
+
+
+
+}catch(error){
+
+console.log(error);
+
+return sendUnauthenticatedErrorResponse(
+res,
+error.message
+);
+
+}
+
 };
 
 
-const blockCard = async (req, res) => {
-    try {
-      const { cardId } = req.body;
-  
-      const card = await CardRequest.findById(cardId);
-  
-      if (!card)
-        return sendBadRequestResponse(res, "Card not found");
-  
-      card.status = "blocked";
-  
-      await card.save();
-  
-      return sendSuccessResponse(res, "Card blocked");
-  
-    } catch (err) {
-      return sendUnauthenticatedErrorResponse(res, err.message);
-    }
-  };
 
-module.exports = {
-  createCardRequest,
-  getMyCardRequests,
-  getAllCardRequests,
-  approveCard,
-  blockCard,
-  fundCard
+
+
+/*
+====================================
+GET USER CARDS
+====================================
+*/
+
+
+const getMyCards = async(req,res)=>{
+
+try{
+
+
+const cards =
+await Card.find({
+userId:req.user.userId
+})
+.sort({
+createdAt:-1
+});
+
+
+
+return sendSuccessResponseData(
+res,
+"Cards fetched",
+{
+cards
+}
+);
+
+
+
+}catch(error){
+
+return sendUnauthenticatedErrorResponse(
+res,
+error.message
+);
+
+}
+
+};
+
+
+
+
+
+/*
+====================================
+ADMIN GET ALL CARDS
+====================================
+*/
+
+
+const getAllCards = async(req,res)=>{
+
+try{
+
+
+const cards =
+await Card.find()
+.populate(
+"userId",
+"name email"
+)
+.sort({
+createdAt:-1
+});
+
+
+
+return sendSuccessResponseData(
+res,
+"All cards",
+{
+cards
+}
+);
+
+
+
+}catch(error){
+
+return sendUnauthenticatedErrorResponse(
+res,
+error.message
+);
+
+}
+
+};
+
+
+
+
+
+
+/*
+====================================
+ADMIN APPROVE CARD
+====================================
+*/
+
+
+const approveCard = async(req,res)=>{
+
+
+try{
+
+
+const {
+cardId
+}=req.body;
+
+
+
+const card =
+await Card.findById(cardId);
+
+
+
+if(!card)
+return sendBadRequestResponse(
+res,
+"Card not found"
+);
+
+
+
+if(card.status==="active")
+return sendBadRequestResponse(
+res,
+"Card already active"
+);
+
+
+
+card.cardNumber =
+generateCardNumber();
+
+
+card.expiry =
+generateExpiry();
+
+
+card.cvv =
+generateCVV();
+
+
+
+card.status="active";
+
+
+
+await card.save();
+
+
+
+return sendSuccessResponse(
+res,
+"Card approved successfully"
+);
+
+
+
+}catch(error){
+
+return sendUnauthenticatedErrorResponse(
+res,
+error.message
+);
+
+}
+
+
+};
+
+
+
+
+
+
+/*
+====================================
+ADMIN REJECT CARD
+====================================
+*/
+
+
+const rejectCard = async(req,res)=>{
+
+
+try{
+
+
+const {
+cardId,
+reason
+}=req.body;
+
+
+
+const card =
+await Card.findById(cardId);
+
+
+
+if(!card)
+return sendBadRequestResponse(
+res,
+"Card not found"
+);
+
+
+
+card.status="rejected";
+
+card.rejectionReason =
+reason || "Rejected by admin";
+
+
+
+await card.save();
+
+
+
+return sendSuccessResponse(
+res,
+"Card rejected"
+);
+
+
+
+}catch(error){
+
+return sendUnauthenticatedErrorResponse(
+res,
+error.message
+);
+
+}
+
+
+};
+
+
+
+
+
+
+
+/*
+====================================
+ADMIN FUND CARD
+====================================
+*/
+
+
+const fundCard = async(req,res)=>{
+
+
+try{
+
+
+const {
+cardId,
+amount
+}=req.body;
+
+
+
+if(!amount || amount<=0){
+
+return sendBadRequestResponse(
+res,
+"Invalid amount"
+);
+
+}
+
+
+
+const card =
+await Card.findById(cardId);
+
+
+
+if(!card){
+
+return sendBadRequestResponse(
+res,
+"Card not found"
+);
+
+}
+
+
+
+if(card.status!=="active"){
+
+return sendBadRequestResponse(
+res,
+"Card is not active"
+);
+
+}
+
+
+
+card.balance += Number(amount);
+
+
+
+card.funded=true;
+
+
+await card.save();
+
+
+
+return sendSuccessResponseData(
+res,
+"Card funded successfully",
+{
+balance:card.balance
+}
+);
+
+
+
+}catch(error){
+
+return sendUnauthenticatedErrorResponse(
+res,
+error.message
+);
+
+}
+
+
+};
+
+
+
+
+
+
+/*
+====================================
+BLOCK CARD
+====================================
+*/
+
+
+const blockCard = async(req,res)=>{
+
+
+try{
+
+
+const {
+cardId
+}=req.body;
+
+
+
+const card =
+await Card.findById(cardId);
+
+
+
+if(!card){
+
+return sendBadRequestResponse(
+res,
+"Card not found"
+);
+
+}
+
+
+
+card.status="blocked";
+
+
+await card.save();
+
+
+
+return sendSuccessResponse(
+res,
+"Card blocked successfully"
+);
+
+
+
+}catch(error){
+
+return sendUnauthenticatedErrorResponse(
+res,
+error.message
+);
+
+}
+
+
+};
+
+
+
+
+
+
+/*
+====================================
+RE-REQUEST REJECTED CARD
+====================================
+*/
+
+
+const requestAgainCard = async(req,res)=>{
+
+
+try{
+
+
+const {
+cardId
+}=req.body;
+
+
+
+const oldCard =
+await Card.findById(cardId);
+
+
+
+if(!oldCard){
+
+return sendBadRequestResponse(
+res,
+"Card not found"
+);
+
+}
+
+
+
+if(oldCard.status!=="rejected"){
+
+return sendBadRequestResponse(
+res,
+"Only rejected cards can be requested again"
+);
+
+}
+
+
+
+oldCard.status="pending";
+oldCard.rejectionReason="";
+
+await oldCard.save();
+
+
+
+return sendSuccessResponse(
+res,
+"Card request submitted again"
+);
+
+
+
+}catch(error){
+
+return sendUnauthenticatedErrorResponse(
+res,
+error.message
+);
+
+}
+
+};
+
+
+
+
+module.exports={
+
+createCardRequest,
+
+getMyCards,
+
+getAllCards,
+
+approveCard,
+
+rejectCard,
+
+fundCard,
+
+blockCard,
+
+requestAgainCard
+
 };
