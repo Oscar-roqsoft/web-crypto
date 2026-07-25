@@ -167,25 +167,19 @@ res,
 
 // prevent duplicate pending card
 
-const existing =
-await Card.findOne({
- userId,
- status:{
-  $in:[
-   "pending",
-   "active"
-  ]
- }
+const existing = await Card.findOne({
+  userId,
+  cardType:cardtype,
+  status: {
+    $in: ["pending", "active"]
+  }
 });
 
-
-if(existing){
-
-return sendBadRequestResponse(
-res,
-"You already have an active or pending card"
-);
-
+if (existing) {
+  return sendBadRequestResponse(
+    res,
+    `You already have a pending or active ${cardtype} card`
+  );
 }
 
 
