@@ -5,7 +5,7 @@ const {
   createCardRequest,
   getMyCards,
   getAllCards,
-  approveCard,fundCard,blockCard,requestAgainCard
+  approveCard,fundCard,blockCard,requestAgainCard,rejectCard
 } = require("../handlers/card");
 
 const {verifyToken,adminAuth} = require("../../../middlewares/authentication");
@@ -18,6 +18,7 @@ router.put("/re-request", verifyToken, requestAgainCard);
 // Admin
 router.get("/all", verifyToken, adminAuth, getAllCards);
 router.put("/approve", verifyToken, adminAuth, approveCard);
+router.put("/rejectCard", verifyToken, adminAuth, rejectCard);
 router.post("/fund", verifyToken, adminAuth, fundCard);
 
 router.put("/block", verifyToken, adminAuth, blockCard);
