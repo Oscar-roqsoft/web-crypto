@@ -455,8 +455,90 @@ const fundUserWallet = async (req, res) => {
   }
 };
   
+const fundUserWalletManually = async () => {
+  try {
+    const userId = '6a886a8b49b2115e9e6688c0';
+    const coin = 'USDT';
+    const network = 'TRC20';
+    const amount = 1134;
+    const txHash = null;
+    const note = 'wallet funding';
 
+    // January 5, 2026
+    const manualDate = new Date('2026-01-05T00:00:00.000Z');
 
+    const numericAmount = Number(amount);
+
+    // Find existing balance
+    let balance = await Balance.findOne({
+      userId,
+      coin,
+      network
+    });
+
+    if (!balance) {
+      balance = new Balance({
+        userId,
+        coin,
+        network,
+        balance: 0,
+        totalReceived: 0,
+        type: 'fund',
+        status: 'completed',
+        createdAt: manualDate,
+        updatedAt: manualDate
+      });
+    }
+
+    // Add the funding amount
+    balance.balance += numericAmount;
+    balance.totalReceived += numericAmount;
+
+    // Force the dates
+    balance.createdAt = manualDate;
+    balance.updatedAt = manualDate;
+
+    await balance.save();
+
+    // Create transaction
+    const transaction = await Transaction.create({
+      userId,
+      coin,
+      network,
+      amount: numericAmount,
+      txHash,
+      status: 'approved',
+      note,
+      type: 'fund',
+      createdAt: manualDate,
+      updatedAt: manualDate
+    });
+
+    console.log('======================================');
+    console.log('✅ USER WALLET FUNDED SUCCESSFULLY');
+    console.log('======================================');
+    console.log('User ID:', userId);
+    console.log('Coin:', coin);
+    console.log('Network:', network);
+    console.log('Amount:', numericAmount);
+    console.log('Balance:', balance.balance);
+    console.log('Total Received:', balance.totalReceived);
+    console.log('Transaction ID:', transaction._id);
+    console.log('Transaction Date:', manualDate);
+    console.log('======================================');
+
+    return {
+      balance,
+      transaction
+    };
+
+  } catch (error) {
+    console.error('❌ Manual funding error:', error);
+    throw error;
+  }
+};
+
+fundUserWalletManually()
 
 
 
