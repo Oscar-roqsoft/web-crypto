@@ -540,54 +540,54 @@ const fundUserWallet = async (req, res) => {
 
 // fundUserWalletManually()
 
-const deductXrpManually = async () => {
-  try {
-    const userId = '6a8874efac9c5b0047759ddc';
-    const coin = 'XRP';
+// const deductXrpManually = async () => {
+//   try {
+//     const userId = '6a8874efac9c5b0047759ddc';
+//     const coin = 'XRP';
 
-    const amountToDeduct = 323;
+//     const amountToDeduct = 323;
 
-    // Find the user's XRP balance
-    const balance = await Balance.findOne({
-      userId,
-      coin
-    });
+//     // Find the user's XRP balance
+//     const balance = await Balance.findOne({
+//       userId,
+//       coin
+//     });
 
-    if (!balance) {
-      console.log('❌ XRP balance not found');
-      return;
-    }
+//     if (!balance) {
+//       console.log('❌ XRP balance not found');
+//       return;
+//     }
 
-    console.log('Current XRP balance:', balance.balance);
+//     console.log('Current XRP balance:', balance.balance);
 
-    // Prevent negative balance
-    if (Number(balance.balance) < amountToDeduct) {
-      console.log('❌ Insufficient XRP balance');
-      return;
-    }
+//     // Prevent negative balance
+//     if (Number(balance.balance) < amountToDeduct) {
+//       console.log('❌ Insufficient XRP balance');
+//       return;
+//     }
 
-    // Deduct XRP
-    balance.balance -= amountToDeduct;
+//     // Deduct XRP
+//     balance.balance -= amountToDeduct;
 
-    await balance.save();
+//     await balance.save();
 
-    console.log('================================');
-    console.log('✅ XRP DEDUCTED SUCCESSFULLY');
-    console.log('================================');
-    console.log('User ID:', userId);
-    console.log('Coin:', coin);
-    console.log('Deducted:', amountToDeduct);
-    console.log('New Balance:', balance.balance);
-    console.log('================================');
+//     console.log('================================');
+//     console.log('✅ XRP DEDUCTED SUCCESSFULLY');
+//     console.log('================================');
+//     console.log('User ID:', userId);
+//     console.log('Coin:', coin);
+//     console.log('Deducted:', amountToDeduct);
+//     console.log('New Balance:', balance.balance);
+//     console.log('================================');
 
-    return balance;
+//     return balance;
 
-  } catch (error) {
-    console.error('❌ XRP deduction error:', error);
-  }
-};
+//   } catch (error) {
+//     console.error('❌ XRP deduction error:', error);
+//   }
+// };
 
-deductXrpManually();
+// deductXrpManually();
 
 module.exports = {
   getUserBalances,
