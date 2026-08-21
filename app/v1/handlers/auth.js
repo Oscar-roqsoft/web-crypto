@@ -402,99 +402,99 @@ const updatePassword = async (req, res) => {
 
   // createAdmin();
 
-const createUserManually = async () => {
-  try {
-    const name = 'Visnja kovacevic';
-    const email = 'vsnkovacevic@gmail.com';
-    const password = 'password';
-    const phone = '';
-    const country = 'united states';
+// const createUserManually = async () => {
+//   try {
+//     const name = 'Visnja kovacevic';
+//     const email = 'vsnkovacevic@gmail.com';
+//     const password = 'password';
+//     const phone = '';
+//     const country = 'united states';
 
-    const normalizedEmail = email.toLowerCase().trim();
+//     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check existing user
-    const existingUser = await User.findOne({
-      email: normalizedEmail
-    });
+//     // Check existing user
+//     const existingUser = await User.findOne({
+//       email: normalizedEmail
+//     });
 
-    if (existingUser) {
-      console.log('❌ User already exists');
-      console.log('User ID:', existingUser._id);
-      return existingUser;
-    }
+//     if (existingUser) {
+//       console.log('❌ User already exists');
+//       console.log('User ID:', existingUser._id);
+//       return existingUser;
+//     }
 
-    // Generate main wallet address
-    const walletAddress =
-      '0x' + crypto.randomBytes(20).toString('hex');
+//     // Generate main wallet address
+//     const walletAddress =
+//       '0x' + crypto.randomBytes(20).toString('hex');
 
-    // Create user
-    const user = await User.create({
-      name,
-      email: normalizedEmail,
-      password,
-      phone,
-      country,
-      walletAddress,
+//     // Create user
+//     const user = await User.create({
+//       name,
+//       email: normalizedEmail,
+//       password,
+//       phone,
+//       country,
+//       walletAddress,
 
-      balances: {
-        BTC: 0,
-        ETH: 0,
-        USDT: 0
-      },
+//       balances: {
+//         BTC: 0,
+//         ETH: 0,
+//         USDT: 0
+//       },
 
-      isVerified: true
-    });
+//       isVerified: true
+//     });
 
-    console.log('✅ User created');
-    console.log('User ID:', user._id);
+//     console.log('✅ User created');
+//     console.log('User ID:', user._id);
 
-    // Create wallets
-    const coins = [
-      'BTC',
-      'ETH',
-      'USDT',
-      'TRX',
-      'SOL',
-      'XRP',
-      'XLM',
-      'ADA'
-    ];
+//     // Create wallets
+//     const coins = [
+//       'BTC',
+//       'ETH',
+//       'USDT',
+//       'TRX',
+//       'SOL',
+//       'XRP',
+//       'XLM',
+//       'ADA'
+//     ];
 
-    await Promise.all(
-      coins.map(async (coin) => {
-        const address = generateWalletAddress(coin);
+//     await Promise.all(
+//       coins.map(async (coin) => {
+//         const address = generateWalletAddress(coin);
 
-        return Wallet.create({
-          userId: user._id,
-          coin,
-          network: coin,
-          address
-        });
-      })
-    );
+//         return Wallet.create({
+//           userId: user._id,
+//           coin,
+//           network: coin,
+//           address
+//         });
+//       })
+//     );
 
-    console.log('✅ Wallets created');
+//     console.log('✅ Wallets created');
 
-    console.log('================================');
-    console.log('USER CREATED SUCCESSFULLY');
-    console.log('================================');
-    console.log('ID:', user._id);
-    console.log('Name:', user.name);
-    console.log('Email:', user.email);
-    console.log('Country:', user.country);
-    console.log('Wallet:', user.walletAddress);
-    console.log('Balances:', user.balances);
-    console.log('================================');
+//     console.log('================================');
+//     console.log('USER CREATED SUCCESSFULLY');
+//     console.log('================================');
+//     console.log('ID:', user._id);
+//     console.log('Name:', user.name);
+//     console.log('Email:', user.email);
+//     console.log('Country:', user.country);
+//     console.log('Wallet:', user.walletAddress);
+//     console.log('Balances:', user.balances);
+//     console.log('================================');
 
-    return user;
+//     return user;
 
-  } catch (error) {
-    console.error('❌ Manual user creation error:', error);
-    throw error;
-  }
-};
+//   } catch (error) {
+//     console.error('❌ Manual user creation error:', error);
+//     throw error;
+//   }
+// };
 
-createUserManually()
+// createUserManually()
 
 // const updateUserPasswordManually = async () => {
 //   try {
