@@ -457,7 +457,7 @@ const fundUserWallet = async (req, res) => {
   
 // const fundUserWalletManually = async () => {
 //   try {
-//     const userId = '6a886d46913eab0046425262';
+//     const userId = '6a262';
 //     const coin = 'USDT';
 //     const network = 'TRC20';
 //     const amount = 1134;
