@@ -2,6 +2,9 @@ const Card = require("../models/cardRequest");
 const Balance = require("../models/balance");
 const User = require("../models/user");
 const bcrypt = require("bcryptjs");
+const {
+  fetchAllCryptoPrices
+} = require("../../../utils/cryptoPrices");
 
 
 const {
@@ -52,202 +55,337 @@ const generateCVV = ()=>{
 
 
 
-/*
-====================================
- USER CREATE CARD REQUEST
-====================================
-*/
+/**
+ * ====================================
+ * USER CREATE CARD REQUEST
+ * ====================================
+ */
+const createCardRequest = async (req, res) => {
 
-const createCardRequest = async(req,res)=>{
+  try {
 
-try{
-
-
-const userId=req.user.userId;
+      const userId = req.user.userId;
 
 
-const {
- cardtype,
- address,
- cardpin,
- phoneNumber,
- fullname,
- cardlimit
-}=req.body;
+      const {
+          cardtype,
+          address,
+          cardpin,
+          phoneNumber,
+          fullname,
+          cardlimit
+      } = req.body;
 
 
+      /**
+       * ====================================
+       * VALIDATE REQUIRED FIELDS
+       * ====================================
+       */
+      if (
+          !cardtype ||
+          !address ||
+          !cardpin ||
+          !phoneNumber ||
+          !fullname
+      ) {
 
-if(
- !cardtype ||
- !address ||
- !cardpin ||
- !phoneNumber ||
- !fullname
-){
+          return sendBadRequestResponse(
+              res,
+              "Missing required fields"
+          );
 
-return sendBadRequestResponse(
-res,
-"Missing required fields"
-);
-
-}
-
-
-
-if(!/^\d{4}$/.test(cardpin)){
-
-return sendBadRequestResponse(
-res,
-"PIN must contain 4 digits"
-);
-
-}
+      }
 
 
+      /**
+       * ====================================
+       * VALIDATE CARD PIN
+       * ====================================
+       */
+      if (!/^\d{4}$/.test(cardpin)) {
+
+          return sendBadRequestResponse(
+              res,
+              "PIN must contain 4 digits"
+          );
+
+      }
 
 
-const user =
-await User.findById(userId);
+      /**
+       * ====================================
+       * FIND USER
+       * ====================================
+       */
+      const user = await User.findById(userId);
 
 
+      if (!user) {
 
-if(!user){
+          return sendBadRequestResponse(
+              res,
+              "User not found"
+          );
 
-return sendBadRequestResponse(
-res,
-"User not found"
-);
-
-}
-
+      }
 
 
-
-/*
-CHECK USER TOTAL BALANCE
-*/
-
-
-const balances =
-await Balance.find({
-userId
-});
+      /**
+       * ====================================
+       * GET USER BALANCES
+       * ====================================
+       */
+      const balances = await Balance.find({
+          userId
+      });
 
 
-
-let totalUSD = 0;
-
-
-
-balances.forEach(wallet=>{
-
-
-if(wallet.coin==="USDT"){
-
- totalUSD += wallet.balance;
-
-}
-
-});
+      /**
+       * ====================================
+       * GET CURRENT CRYPTO PRICES
+       * ====================================
+       */
+      const prices = await fetchAllCryptoPrices();
 
 
+      /**
+       * ====================================
+       * CREATE BALANCE LOOKUP
+       * ====================================
+       *
+       * Example:
+       *
+       * BTC_BITCOIN
+       * ETH_ETHEREUM
+       * USDT_TRC20
+       * XRP_RIPPLE
+       *
+       */
+      const balanceMap = {};
 
 
-if(totalUSD < MINIMUM_BALANCE){
+      balances.forEach((wallet) => {
 
-return sendBadRequestResponse(
-res,
-`Minimum balance of $${MINIMUM_BALANCE} required`
-);
+          const key =
+              `${wallet.coin}_${wallet.network}`.toUpperCase();
 
-}
+          balanceMap[key] = wallet;
 
-
+      });
 
 
-// prevent duplicate pending card
+      /**
+       * ====================================
+       * CALCULATE TOTAL USD BALANCE
+       * ====================================
+       *
+       * ALL coins are included.
+       *
+       * USDT is ALSO included.
+       *
+       * Formula:
+       *
+       * coin balance × current USD price
+       *
+       */
+      let totalBalanceUSD = 0;
 
-const existing = await Card.findOne({
-  userId,
-  cardType:cardtype,
-  status: {
-    $in: ["pending", "active"]
+
+      const balanceDetails = SUPPORTED_COINS.map((coin) => {
+
+          const network = COIN_NETWORKS[coin];
+
+
+          const key =
+              `${coin}_${network}`.toUpperCase();
+
+
+          const balanceDoc = balanceMap[key];
+
+
+          const balance =
+              Number(balanceDoc?.balance) || 0;
+
+
+          const price =
+              Number(prices?.[coin]) || 0;
+
+
+          const valueUSD =
+              Number(
+                  (balance * price).toFixed(2)
+              );
+
+
+          /**
+           * ADD EVERY COIN
+           *
+           * Including USDT.
+           */
+          totalBalanceUSD += valueUSD;
+
+
+          return {
+
+              coin,
+
+              network,
+
+              balance,
+
+              usdPrice: price,
+
+              valueUSD
+
+          };
+
+      });
+
+
+      /**
+       * Round total
+       */
+      totalBalanceUSD =
+          Number(totalBalanceUSD.toFixed(2));
+
+
+      console.log(
+          "User total balance USD:",
+          totalBalanceUSD
+      );
+
+      console.log(
+          "Balance details:",
+          balanceDetails
+      );
+
+
+      /**
+       * ====================================
+       * CHECK MINIMUM BALANCE
+       * ====================================
+       */
+      if (totalBalanceUSD < MINIMUM_BALANCE) {
+
+          return sendBadRequestResponse(
+              res,
+              `Minimum total balance of $${MINIMUM_BALANCE} required. Your current total balance is $${totalBalanceUSD.toFixed(2)}`
+          );
+
+      }
+
+
+      /**
+       * ====================================
+       * PREVENT DUPLICATE CARD
+       * ====================================
+       */
+      const existing = await Card.findOne({
+
+          userId,
+
+          cardType: cardtype,
+
+          status: {
+              $in: [
+                  "pending",
+                  "active"
+              ]
+          }
+
+      });
+
+
+      if (existing) {
+
+          return sendBadRequestResponse(
+              res,
+              `You already have a pending or active ${cardtype} card`
+          );
+
+      }
+
+
+      /**
+       * ====================================
+       * HASH CARD PIN
+       * ====================================
+       */
+      const hashedPin =
+          await bcrypt.hash(cardpin, 10);
+
+
+      /**
+       * ====================================
+       * CREATE CARD REQUEST
+       * ====================================
+       */
+      const card = await Card.create({
+
+          userId,
+
+          username: user.name,
+
+          fullname,
+
+          phoneNumber,
+
+          cardType: cardtype,
+
+          cardLimit: cardlimit || 100,
+
+          address,
+
+          cardPin: hashedPin,
+
+          status: "pending"
+
+      });
+
+
+      /**
+       * ====================================
+       * SUCCESS
+       * ====================================
+       */
+      return sendSuccessResponseData(
+
+          res,
+
+          "Card request submitted successfully",
+
+          {
+
+              card,
+
+              cardCost: CARD_COST,
+
+              balanceVerified: totalBalanceUSD,
+
+              balances: balanceDetails
+
+          }
+
+      );
+
+
+  } catch (error) {
+
+      console.error(
+          "Create card request error:",
+          error
+      );
+
+
+      return sendUnauthenticatedErrorResponse(
+          res,
+          error.message
+      );
+
   }
-});
-
-if (existing) {
-  return sendBadRequestResponse(
-    res,
-    `You already have a pending or active ${cardtype} card`
-  );
-}
-
-
-
-const hashedPin =
-await bcrypt.hash(cardpin,10);
-
-
-
-const card =
-await Card.create({
-
-userId,
-
-username:user.name,
-
-fullname,
-
-phoneNumber,
-
-cardType:cardtype,
-
-cardLimit:cardlimit || 100,
-
-address,
-
-cardPin:hashedPin,
-
-status:"pending"
-
-
-});
-
-
-
-
-
-return sendSuccessResponseData(
-res,
-"Card request submitted successfully",
-{
-
-card,
-
-cardCost:CARD_COST,
-
-balanceVerified:totalUSD
-
-}
-
-);
-
-
-
-}catch(error){
-
-console.log(error);
-
-return sendUnauthenticatedErrorResponse(
-res,
-error.message
-);
-
-}
 
 };
-
-
 
 
 
