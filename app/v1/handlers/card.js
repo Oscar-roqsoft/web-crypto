@@ -21,6 +21,21 @@ const CARD_COST = 20;
 
 
 
+const SUPPORTED_COINS = ["BTC","ETH","USDT","TRX","SOL","XRP","XLM","ADA"];
+
+
+const COIN_NETWORKS = {
+  BTC: "BITCOIN",
+  ETH: "ETHEREUM",
+  USDT: "TRC20",
+  TRX: "TRON",
+  SOL: "SOLANA",
+  XRP: "RIPPLE",
+  XLM: "STELLAR",
+  ADA: "CARDONA"
+};
+
+
 const generateCardNumber = ()=>{
 
  return "4" +
