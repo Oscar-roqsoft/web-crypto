@@ -157,13 +157,13 @@ const verifyOTP = async (req, res) => {
       );
     }
 
-    // if (user.isVerified) {
-    //   return sendBadRequestResponse(
-    //     res,
-    //     "Email already verified"
-    //   );
-    
-    // }
+    if (user.isVerified) {
+      return sendBadRequestResponse(
+        res,
+        "Email already verified"
+      );
+
+    }
 
     user.isVerified = true;
     await user.save();
@@ -197,6 +197,56 @@ const verifyOTP = async (req, res) => {
         ...safeUser,
       }
     );
+  } catch (error) {
+    console.error("Verify OTP error:", error);
+
+    return sendUnauthenticatedErrorResponse(
+      res,
+      error.message
+    );
+  }
+};
+
+
+const verifyEmailCode = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return sendBadRequestResponse(
+        res,
+        "Email and OTP required"
+      );
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const key = `otp:${normalizedEmail}`;
+
+    const storedOTP = cache.get(key);
+
+    if (!storedOTP) {
+      return sendBadRequestResponse(
+        res,
+        "OTP expired"
+      );
+    }
+
+    if (String(storedOTP) !== String(otp).trim()) {
+      return sendBadRequestResponse(
+        res,
+        "Invalid OTP"
+      );
+    }
+
+    // OTP is correct
+    return sendSuccessResponseData(
+      res,
+      "OTP verified successfully",
+      {
+        verified: true
+      }
+    );
+
   } catch (error) {
     console.error("Verify OTP error:", error);
 
@@ -530,6 +580,7 @@ const updatePassword = async (req, res) => {
 module.exports = {
   register,
   verifyOTP,
+  verifyEmailCode,
   resendOTP,
   login,
   updatePassword
