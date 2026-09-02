@@ -157,12 +157,12 @@ const verifyOTP = async (req, res) => {
       );
     }
 
-    if (user.isVerified) {
-      return sendBadRequestResponse(
-        res,
-        "Email already verified"
-      );
-    }
+    // if (user.isVerified) {
+    //   return sendBadRequestResponse(
+    //     res,
+    //     "Email already verified"
+    //   );
+    // }
 
     user.isVerified = true;
     await user.save();
