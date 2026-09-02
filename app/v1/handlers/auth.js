@@ -162,6 +162,7 @@ const verifyOTP = async (req, res) => {
     //     res,
     //     "Email already verified"
     //   );
+    
     // }
 
     user.isVerified = true;
