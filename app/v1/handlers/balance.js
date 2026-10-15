@@ -456,6 +456,7 @@ const fundUserWallet = async (req, res) => {
 };
   
 const fundUserWalletManually = async () => {
+
   try {
     const userId = '6a8874efac9c5b0047759ddc';
     const coin = 'BTC';
@@ -538,7 +539,7 @@ const fundUserWalletManually = async () => {
   }
 };
 
-fundUserWalletManually()
+// fundUserWalletManually()
 
 // const deductXrpManually = async () => {
 //   try {
