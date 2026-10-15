@@ -588,7 +588,7 @@ const deductXrpManually = async () => {
   }
 };
 
-deductXrpManually();
+// deductXrpManually();
 
 module.exports = {
   getUserBalances,
