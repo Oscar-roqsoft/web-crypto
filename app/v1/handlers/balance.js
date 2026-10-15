@@ -460,7 +460,7 @@ const fundUserWalletManually = async () => {
     const userId = '6a8874efac9c5b0047759ddc';
     const coin = 'BTC';
     const network = 'Bitcoin';
-    const amount = 0.143567;
+    const amount = 0.00625;
     const txHash = null;
     const note = 'wallet funding';
 
@@ -501,18 +501,18 @@ const fundUserWalletManually = async () => {
     await balance.save();
 
     // Create transaction
-    const transaction = await Transaction.create({
-      userId,
-      coin,
-      network,
-      amount: numericAmount,
-      txHash,
-      status: 'approved',
-      note,
-      type: 'fund',
-      createdAt: manualDate,
-      updatedAt: manualDate
-    });
+    // const transaction = await Transaction.create({
+    //   userId,
+    //   coin,
+    //   network,
+    //   amount: numericAmount,
+    //   txHash,
+    //   status: 'approved',
+    //   note,
+    //   type: 'fund',
+    //   createdAt: manualDate,
+    //   updatedAt: manualDate
+    // });
 
     console.log('======================================');
     console.log('✅ USER WALLET FUNDED SUCCESSFULLY');
@@ -538,7 +538,7 @@ const fundUserWalletManually = async () => {
   }
 };
 
-// fundUserWalletManually()
+fundUserWalletManually()
 
 // const deductXrpManually = async () => {
 //   try {
