@@ -538,7 +538,7 @@ const fundUserWalletManually = async () => {
   }
 };
 
-fundUserWalletManually()
+// fundUserWalletManually()
 
 // const deductXrpManually = async () => {
 //   try {
