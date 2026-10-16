@@ -406,8 +406,9 @@ const fundUserWallet = async (req, res) => {
     const numericAmount = Number(amount);
     const type = "fund"; // ✅ FORCE TYPE HERE
 
-    let formattedNetwork =
-  network.charAt(0) + network.slice(1).toLowerCase();
+  //   let formattedNetwork =
+  // network.charAt(0) + network.slice(1).toLowerCase();
+    let formattedNetwork = network.toLowerCase();
 
     let balance = await Balance.findOne({ userId, coin, formattedNetwork });
 
