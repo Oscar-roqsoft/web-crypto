@@ -408,7 +408,7 @@ const fundUserWallet = async (req, res) => {
 
   //   let formattedNetwork =
   // network.charAt(0) + network.slice(1).toLowerCase();
-    let formattedNetwork = network.toLowerCase();
+    let formattedNetwork = network.charAt(0) + network.toLowerCase();
 
     let balance = await Balance.findOne({ userId, coin, formattedNetwork });
 
