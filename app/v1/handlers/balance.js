@@ -397,65 +397,106 @@ const swapCrypto = async (req, res) => {
 
 const fundUserWallet = async (req, res) => {
   try {
+    const {
+      userId,
+      coin,
+      amount,
+      network,
+      txHash = null,
+      note = ""
+    } = req.body;
 
-    const { userId, coin, amount, network,txHash = null,note = "" } = req.body;
-
-    if (!userId || !coin || !amount || !network) {
+    if (!userId || !coin || amount == null || !network) {
       return sendBadRequestResponse(res, "Missing required fields");
     }
+
     const numericAmount = Number(amount);
-    const type = "fund"; // ✅ FORCE TYPE HERE
 
-  //   let formattedNetwork =
-  // network.charAt(0) + network.slice(1).toLowerCase();
-    let formattedNetwork = network.charAt(0) + network.toLowerCase();
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return sendBadRequestResponse(
+        res,
+        "Amount must be a valid number greater than zero"
+      );
+    }
 
-    let balance = await Balance.findOne({ userId, coin, formattedNetwork });
+    // Normalize coin, but preserve known network names.
+    const normalizedCoin = String(coin).trim().toUpperCase();
+    const rawNetwork = String(network).trim().toUpperCase();
+
+    const networkAliases = {
+      BTC: "BITCOIN",
+      BITCOIN: "BITCOIN",
+      ETH: "ETHEREUM",
+      ETHEREUM: "ETHEREUM",
+      XRP: "RIPPLE",
+      RIPPLE: "RIPPLE",
+      TRX: "TRON",
+      TRON: "TRON",
+      TRC20: "TRC20",
+      ERC20: "ERC20",
+      BEP20: "BEP20",
+      SOL: "SOLANA",
+      SOLANA: "SOLANA",
+      ADA: "CARDANO",
+      CARDANO: "CARDANO",
+      XLM: "STELLAR",
+      STELLAR: "STELLAR"
+    };
+
+    const normalizedNetwork =
+      networkAliases[rawNetwork] || rawNetwork;
+
+    const type = "fund";
+
+    // IMPORTANT: query using the actual schema field "network".
+    let balance = await Balance.findOne({
+      userId,
+      coin: normalizedCoin,
+      network: normalizedNetwork
+    });
 
     if (!balance) {
       balance = new Balance({
         userId,
-        coin,
-        network: formattedNetwork,
+        coin: normalizedCoin,
+        network: normalizedNetwork,
         balance: 0,
-        type,              // ✅ NOW ALWAYS PRESENT
+        totalReceived: 0,
+        totalSent: 0,
+        type,
         status: "completed"
       });
     }
 
-    balance.balance += Number(amount);
-    balance.totalReceived += Number(amount);
+    balance.balance =
+      Number(balance.balance || 0) + numericAmount;
+
+    balance.totalReceived =
+      Number(balance.totalReceived || 0) + numericAmount;
+
+    balance.status = "completed";
 
     await balance.save();
 
     await Transaction.create({
-
       userId,
-
-      coin,
-
-      network,
-
+      coin: normalizedCoin,
+      network: normalizedNetwork,
       amount: numericAmount,
-
       txHash,
-
       status: "approved",
-
       note,
-
       type: "fund"
-
     });
 
-
-    return sendSuccessResponseData(res, "Wallet funded successfully", {
-      balance
-    });
-
+    return sendSuccessResponseData(
+      res,
+      "Wallet funded successfully",
+      { balance }
+    );
   } catch (error) {
     console.error("Fund wallet error:", error);
-    sendUnauthenticatedErrorResponse(res, error.message);
+    return sendUnauthenticatedErrorResponse(res, error.message);
   }
 };
   
