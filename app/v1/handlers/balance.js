@@ -406,13 +406,16 @@ const fundUserWallet = async (req, res) => {
     const numericAmount = Number(amount);
     const type = "fund"; // ✅ FORCE TYPE HERE
 
-    let balance = await Balance.findOne({ userId, coin, network });
+    let formattedNetwork =
+  network.charAt(0) + network.slice(1).toLowerCase();
+
+    let balance = await Balance.findOne({ userId, coin, formattedNetwork });
 
     if (!balance) {
       balance = new Balance({
         userId,
         coin,
-        network: network.toUpperCase(),
+        network: formattedNetwork,
         balance: 0,
         type,              // ✅ NOW ALWAYS PRESENT
         status: "completed"
